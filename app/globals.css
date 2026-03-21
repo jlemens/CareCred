@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0d14;
+  --foreground: #eaf0ff;
+  --surface: #121827;
+  --surface-alt: #1a2233;
+  --border: #2a344a;
+  --muted: #a7b3cc;
+  --accent-primary: #6e7dff;
+  --accent-hover: #8090ff;
+  --accent-secondary: #9b8cff;
+  --success: #46b98a;
+  --danger: #d66b7a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+}
+
+a {
+  color: inherit;
+}
+
+.card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0.875rem;
+}
+
+/* iOS form UX: prevent auto-zoom by keeping 16px inputs. */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+button,
+a[role="button"],
+input[type="submit"] {
+  min-height: 44px;
+}
