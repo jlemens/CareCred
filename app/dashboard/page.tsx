@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ImportedReviewForm } from "@/components/imported-review-form";
 import { LogoutButton } from "@/components/logout-button";
-import { ProfileEditor } from "@/components/profile-editor";
+import { StarRatingDisplay } from "@/components/star-rating-display";
+import { OnboardingFlow } from "@/components/onboarding-flow";
+import { effectiveOverallRating } from "@/lib/review-ratings";
 import {
   getGivenReviewsByUser,
   getProfileByUserId,
@@ -49,39 +51,7 @@ export default async function DashboardPage() {
 
   if (needsOnboarding) {
     return (
-      <div className="grid w-full gap-6">
-        <section className="card p-6 sm:p-8">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            First-time setup
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            Create your CareCred profile
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            This step only happens once. After you save, use{" "}
-            <strong className="text-foreground">My page</strong> in the header
-            to open your public profile anytime. The site home is{" "}
-            <Link href="/" className="text-accent-secondary underline">
-              CareCred home
-            </Link>
-            .
-          </p>
-        </section>
-
-        <section className="card flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
-          <p className="text-sm text-muted">
-            Signed in as {user.email ?? "your account"}
-          </p>
-          <LogoutButton />
-        </section>
-
-        <ProfileEditor
-          userId={user.id}
-          initial={{
-            email: user.email ?? "",
-          }}
-        />
-      </div>
+      <OnboardingFlow userId={user.id} email={user.email ?? ""} />
     );
   }
 
@@ -137,17 +107,29 @@ export default async function DashboardPage() {
           </p>
         ) : (
           <ul className="mt-4 space-y-3">
-            {givenReviews.map((review) => (
-              <li key={review.id} className="rounded-md border border-border p-3">
-                <p className="text-sm text-muted">
-                  {new Date(review.created_at).toLocaleDateString()} -{" "}
-                  {review.source === "google_manual"
-                    ? "Imported"
-                    : "PT survey review"}
-                </p>
-                <p className="mt-1 text-sm">{review.standout_care ?? "-"}</p>
-              </li>
-            ))}
+            {givenReviews.map((review) => {
+              const stars = effectiveOverallRating(review);
+              return (
+                <li key={review.id} className="rounded-md border border-border p-3">
+                  <p className="text-sm text-muted">
+                    {new Date(review.created_at).toLocaleDateString()} ·{" "}
+                    {review.source === "google_manual"
+                      ? "Imported"
+                      : "Quick survey"}
+                  </p>
+                  {review.source === "pt_survey" && stars != null ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <StarRatingDisplay value={stars} />
+                      <span className="text-sm text-muted">{stars}/5</span>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-sm">
+                      {review.standout_care?.trim() || "—"}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

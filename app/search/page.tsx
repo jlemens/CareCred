@@ -14,7 +14,8 @@ export default async function SearchPage({ searchParams }: Props) {
       <section className="card p-5 sm:p-6">
         <h1 className="text-2xl font-semibold">Find a provider</h1>
         <p className="mt-2 text-sm text-muted">
-          Search by provider public name or practice name.
+          Search by name, practice, location, specialties, education, or the
+          credentials line on a provider profile (not case-sensitive).
         </p>
         <form className="mt-4 flex flex-col gap-2 sm:flex-row" action="/search">
           <input
@@ -33,9 +34,15 @@ export default async function SearchPage({ searchParams }: Props) {
       </section>
 
       <section className="grid gap-3">
+        {!q ? (
+          <p className="text-sm text-muted">
+            Showing up to 20 providers. Use search to narrow results.
+          </p>
+        ) : null}
         {q && results.length === 0 ? (
           <p className="text-sm text-muted">
-            No complete provider profiles matched your search.
+            No provider profiles matched that text. Try fewer words or a credential
+            like DPT or OCS.
           </p>
         ) : null}
         {results.map((provider) => (

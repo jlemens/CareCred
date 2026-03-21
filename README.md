@@ -32,7 +32,7 @@ This starter includes:
 
 3. In Supabase SQL editor, run:
 
-   - `supabase/schema.sql`
+   - `supabase/schema.sql` (includes `overall_rating`, `is_pinned`, and nullable `body_region` / `condition_summary` for star-only surveys)
    - `supabase/storage.sql` (creates the `avatars` bucket, 15 MB limit, and upload policies). Re-run it if you already created the bucket with an older 5 MB limit.
 
 4. Start the app:
@@ -57,7 +57,9 @@ After that, open your Vercel URL on your iPhone. Local development stays `npm ru
 
 ## Important behavior
 
-- Providers appear in search only when `is_complete = true`.
-- For provider profile completeness (`is_complete` / search): profile photo + About/bio. Practice name, location, specialties, education, and years of experience are optional.
+- Re-run **`supabase/schema.sql`** in the Supabase SQL editor when we add columns (e.g. `first_name`, `last_name`, `credentials`) — the file includes `ALTER TABLE ... IF NOT EXISTS` for existing projects.
+- Provider search matches name, practice, location, specialties, education, and **credentials** (case-insensitive). Incomplete providers can still appear in results.
+- `is_complete` is still set when a provider has **photo + bio** (used for polish / future rules), but it no longer gates search.
+- Public **display name** is built from **first + last name** and is what search uses for the name field.
 - Guest PT survey reviews are allowed (higher spam risk; add CAPTCHA/rate limits for production hardening).
 - Imported Google reviews require provider attestation in the dashboard form.

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { Profile, ProfileType } from "@/lib/types";
 import { prepareAvatarForUpload } from "@/lib/image-compress";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { namesFromProfile } from "@/lib/profile-names";
 
 /** Max size of the original file picked from the device (before compression). */
 const AVATAR_RAW_MAX_BYTES = 35 * 1024 * 1024;
@@ -15,17 +16,23 @@ const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 type Props = {
   userId: string;
   initial: Partial<Profile> & { email?: string };
+  /** When true (first-time onboarding), profile type cannot be changed here. */
+  lockProfileType?: boolean;
 };
 
-export function ProfileEditor({ userId, initial }: Props) {
+export function ProfileEditor({ userId, initial, lockProfileType = false }: Props) {
   const router = useRouter();
+  const { first: initialFirst, last: initialLast } = namesFromProfile(initial);
+
   const [profileType, setProfileType] = useState<ProfileType>(
     (initial.profile_type as ProfileType) ?? "provider",
   );
-  const [displayName, setDisplayName] = useState(initial.display_name ?? "");
+  const [firstName, setFirstName] = useState(initialFirst);
+  const [lastName, setLastName] = useState(initialLast);
   const [slug, setSlug] = useState(initial.slug ?? "");
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? "");
   const [practiceName, setPracticeName] = useState(initial.practice_name ?? "");
+  const [credentials, setCredentials] = useState(initial.credentials ?? "");
   const [specialties, setSpecialties] = useState(initial.specialties ?? "");
   const [education, setEducation] = useState(initial.education ?? "");
   const [yearsExperience, setYearsExperience] = useState(
@@ -40,6 +47,11 @@ export function ProfileEditor({ userId, initial }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+
+  const displayPreview = useMemo(() => {
+    const combined = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
+    return combined || "—";
+  }, [firstName, lastName]);
 
   const profileLink = useMemo(
     () =>
@@ -136,12 +148,14 @@ export function ProfileEditor({ userId, initial }: Props) {
 
     const payload = {
       profileType,
-      displayName,
+      firstName,
+      lastName,
       slug,
       avatarUrl,
       practiceName,
       specialties,
       education,
+      credentials: profileType === "provider" ? credentials : "",
       yearsExperience,
       location,
       bio,
@@ -174,40 +188,65 @@ export function ProfileEditor({ userId, initial }: Props) {
         ) : null}
       </div>
 
-      <label className="block space-y-2">
-        <span className="text-sm text-muted">Profile type</span>
-        <select
-          value={profileType}
-          onChange={(e) => setProfileType(e.target.value as ProfileType)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        >
-          <option value="provider">Provider</option>
-          <option value="patient">Patient</option>
-        </select>
-      </label>
+      {lockProfileType ? (
+        <p className="rounded-md border border-border bg-surface-alt px-3 py-2 text-sm">
+          Account type:{" "}
+          <strong className="text-foreground">
+            {profileType === "provider" ? "Provider" : "Patient"}
+          </strong>
+        </p>
+      ) : (
+        <label className="block space-y-2">
+          <span className="text-sm text-muted">Profile type</span>
+          <select
+            value={profileType}
+            onChange={(e) => setProfileType(e.target.value as ProfileType)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="provider">Provider</option>
+            <option value="patient">Patient</option>
+          </select>
+        </label>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block space-y-2">
-          <span className="text-sm text-muted">Display name</span>
+          <span className="text-sm text-muted">First name</span>
           <input
             required
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            autoComplete="given-name"
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
-
         <label className="block space-y-2">
-          <span className="text-sm text-muted">Public slug</span>
+          <span className="text-sm text-muted">Last name</span>
           <input
             required
-            value={slug}
-            onChange={(e) => setSlug(e.target.value.toLowerCase())}
-            placeholder="jane-doe-pt"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            autoComplete="family-name"
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
       </div>
+
+      <p className="text-xs text-muted">
+        Public display name (used on your page and in search):{" "}
+        <span className="font-medium text-foreground">{displayPreview}</span>
+      </p>
+
+      <label className="block space-y-2">
+        <span className="text-sm text-muted">Public slug</span>
+        <input
+          required
+          value={slug}
+          onChange={(e) => setSlug(e.target.value.toLowerCase())}
+          placeholder="jane-doe-pt"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+      </label>
 
       {profileType === "provider" ? (
         <>
@@ -254,13 +293,8 @@ export function ProfileEditor({ userId, initial }: Props) {
                   </p>
                 ) : (
                   <p className="text-xs text-muted">
-                    JPG, PNG, and WebP are resized and compressed automatically
-                    before upload. GIFs stay animated (up to 15 MB). If uploads
-                    fail, re-run{" "}
-                    <code className="rounded bg-surface-alt px-1">
-                      supabase/storage.sql
-                    </code>{" "}
-                    in Supabase to refresh bucket limits.
+                    JPG, PNG, and WebP are compressed before upload. GIFs stay
+                    animated (up to 15 MB).
                   </p>
                 )}
               </div>
@@ -278,18 +312,28 @@ export function ProfileEditor({ userId, initial }: Props) {
               />
             </label>
           </div>
+
+          <label className="block space-y-2">
+            <span className="text-sm text-muted">Credentials (optional)</span>
+            <input
+              value={credentials}
+              onChange={(e) => setCredentials(e.target.value)}
+              placeholder="e.g. DPT, OCS, FAAOMPT"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <span className="text-xs text-muted">
+              Shown on your public profile and included in provider search.
+            </span>
+          </label>
+
           <div className="space-y-3 rounded-lg border border-border/60 bg-surface-alt/40 p-4">
             <p className="text-sm font-medium text-foreground">
               Professional details{" "}
               <span className="font-normal text-muted">(optional)</span>
             </p>
-            <p className="text-xs text-muted">
-              Add these anytime. They are not required to create your account or
-              appear in provider search.
-            </p>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block space-y-2">
-                <span className="text-sm text-muted">Practice name (optional)</span>
+                <span className="text-sm text-muted">Practice name</span>
                 <input
                   value={practiceName}
                   onChange={(e) => setPracticeName(e.target.value)}
@@ -297,7 +341,7 @@ export function ProfileEditor({ userId, initial }: Props) {
                 />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm text-muted">Location (optional)</span>
+                <span className="text-sm text-muted">Location</span>
                 <input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -306,29 +350,26 @@ export function ProfileEditor({ userId, initial }: Props) {
               </label>
             </div>
             <label className="block space-y-2">
-              <span className="text-sm text-muted">Specialties (optional)</span>
+              <span className="text-sm text-muted">Specialties</span>
               <input
                 value={specialties}
                 onChange={(e) => setSpecialties(e.target.value)}
-                placeholder="e.g. Sports rehab, post-op recovery, mobility"
+                placeholder="e.g. Sports rehab, post-op recovery"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
             </label>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="block space-y-2">
-                <span className="text-sm text-muted">
-                  Education / graduation (optional)
-                </span>
+                <span className="text-sm text-muted">Education</span>
                 <input
                   value={education}
                   onChange={(e) => setEducation(e.target.value)}
+                  placeholder="e.g. University, program, year"
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm text-muted">
-                  Years of experience (optional)
-                </span>
+                <span className="text-sm text-muted">Years of experience</span>
                 <input
                   type="number"
                   min={0}
@@ -342,21 +383,12 @@ export function ProfileEditor({ userId, initial }: Props) {
         </>
       ) : (
         <p className="rounded-md border border-border bg-surface-alt p-3 text-sm text-muted">
-          Patient profile selected: no profile photo is required.
+          Patient accounts do not require a profile photo.
         </p>
       )}
 
       <label className="block space-y-2">
-        <span className="text-sm text-muted">
-          About{" "}
-          {profileType === "provider" ? (
-            <span className="text-muted">
-              (required for providers to publish &amp; show in search)
-            </span>
-          ) : (
-            <span className="text-muted">(required for patient profile)</span>
-          )}
-        </span>
+        <span className="text-sm text-muted">About you</span>
         <textarea
           rows={4}
           required

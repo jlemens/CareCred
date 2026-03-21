@@ -3,27 +3,23 @@ import { hasSupabaseEnv } from "@/lib/env";
 
 export default function AuthPage() {
   return (
-    <div className="grid w-full gap-6 lg:grid-cols-[1fr_420px]">
-      <section className="card p-6 sm:p-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Join CareCred</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
-          Create one account per email and choose a profile format: Provider or
-          Patient. Providers can publish a professional page with PT-focused
-          review collection and QR-friendly sharing.
+    <div className="mx-auto grid w-full max-w-lg gap-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          CareCred
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          Sign in or create an account to continue.
         </p>
-        <ul className="mt-6 space-y-2 text-sm text-muted">
-          <li>- Provider profiles require a profile picture before search listing.</li>
-          <li>- Patient profiles support a &quot;My given testimonials&quot; view.</li>
-          <li>- PT survey is active for MVP; other survey templates are coming soon.</li>
-        </ul>
+      </div>
 
-        {!hasSupabaseEnv() ? (
-          <div className="mt-6 rounded-md border border-danger/60 bg-danger/10 p-4 text-sm">
-            Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-            in `.env.local` before using auth and database features.
-          </div>
-        ) : null}
-      </section>
+      {!hasSupabaseEnv() ? (
+        <div className="rounded-md border border-danger/60 bg-danger/10 p-4 text-center text-sm">
+          Add Supabase environment variables to use sign-in. See{" "}
+          <code className="rounded bg-background/60 px-1">.env.example</code>.
+        </div>
+      ) : null}
+
       <AuthPanel />
     </div>
   );

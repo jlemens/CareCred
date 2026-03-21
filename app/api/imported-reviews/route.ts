@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     provider_profile_id: parsed.data.providerProfileId,
     author_user_id: user.id,
     guest_name: parsed.data.guestName.trim(),
+    overall_rating: null,
     recommend_provider: true,
     rehab_experience_rating: 5,
     communication_rating: 5,
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
       "Quoted or reproduced from Google Reviews. Provider attested source accuracy.",
     attestation_accepted: true,
     is_visible: true,
+    is_pinned: false,
   });
 
   if (error) {

@@ -4,16 +4,9 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const surveySchema = z.object({
   providerProfileId: z.string().uuid(),
-  guestName: z.string().min(2).max(80),
-  recommendProvider: z.boolean(),
-  rehabExperienceRating: z.number().min(1).max(5),
-  communicationRating: z.number().min(1).max(5),
-  professionalismRating: z.number().min(1).max(5),
-  feltListened: z.boolean(),
-  bodyRegion: z.string().min(2).max(80),
-  conditionSummary: z.string().min(2).max(240),
-  rehabStory: z.string().max(2000).optional(),
-  standoutCare: z.string().max(2000).optional(),
+  /** Optional; shown as Anonymous if empty. */
+  guestName: z.string().max(80).optional(),
+  overallRating: z.number().int().min(1).max(5),
   consent: z.literal(true),
 });
 
@@ -35,25 +28,54 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (user) {
+    const { data: providerProfile, error: providerLookupError } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .eq("id", parsed.data.providerProfileId)
+      .eq("profile_type", "provider")
+      .single<{ user_id: string }>();
+
+    if (providerLookupError || !providerProfile) {
+      return NextResponse.json(
+        { error: "Provider profile could not be found." },
+        { status: 404 },
+      );
+    }
+
+    if (providerProfile.user_id === user.id) {
+      return NextResponse.json(
+        { error: "Providers cannot submit PT surveys for themselves." },
+        { status: 403 },
+      );
+    }
+  }
+
+  const stars = parsed.data.overallRating;
+  const guest = parsed.data.guestName?.trim();
+  const guestName = guest && guest.length >= 1 ? guest : null;
+
   const payload = {
     provider_profile_id: parsed.data.providerProfileId,
     author_user_id: user?.id ?? null,
-    guest_name: parsed.data.guestName.trim(),
-    recommend_provider: parsed.data.recommendProvider,
-    rehab_experience_rating: parsed.data.rehabExperienceRating,
-    communication_rating: parsed.data.communicationRating,
-    professionalism_rating: parsed.data.professionalismRating,
-    felt_listened: parsed.data.feltListened,
-    body_region: parsed.data.bodyRegion.trim(),
-    condition_summary: parsed.data.conditionSummary.trim(),
-    rehab_story: parsed.data.rehabStory?.trim() || null,
-    standout_care: parsed.data.standoutCare?.trim() || null,
+    guest_name: guestName,
+    overall_rating: stars,
+    recommend_provider: true,
+    rehab_experience_rating: stars,
+    communication_rating: stars,
+    professionalism_rating: stars,
+    felt_listened: true,
+    body_region: null,
+    condition_summary: null,
+    rehab_story: null,
+    standout_care: null,
     source: "pt_survey",
-    source_label: "PT Survey",
+    source_label: "Quick survey",
     disclaimer_text: null,
     source_url: null,
     attestation_accepted: null,
     is_visible: true,
+    is_pinned: false,
   };
 
   const { error } = await supabase.from("provider_reviews").insert(payload);

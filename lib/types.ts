@@ -6,6 +6,9 @@ export type Profile = {
   slug: string;
   profile_type: ProfileType;
   display_name: string;
+  first_name: string | null;
+  last_name: string | null;
+  credentials: string | null;
   practice_name: string | null;
   location: string | null;
   bio: string | null;
@@ -22,13 +25,15 @@ export type ProviderReview = {
   provider_profile_id: string;
   author_user_id: string | null;
   guest_name: string | null;
+  /** Single overall 1–5 for quick survey (preferred for stats). */
+  overall_rating: number | null;
   recommend_provider: boolean;
   rehab_experience_rating: number;
   communication_rating: number;
   professionalism_rating: number;
   felt_listened: boolean;
-  body_region: string;
-  condition_summary: string;
+  body_region: string | null;
+  condition_summary: string | null;
   rehab_story: string | null;
   standout_care: string | null;
   source: "pt_survey" | "google_manual";
@@ -37,6 +42,7 @@ export type ProviderReview = {
   disclaimer_text: string | null;
   attestation_accepted: boolean | null;
   is_visible: boolean;
+  is_pinned: boolean;
   created_at: string;
 };
 
