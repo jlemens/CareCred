@@ -3,11 +3,27 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  exchangeEmailLinkAuth,
+  readAuthExchangeParams,
+  readSupabaseAuthError,
+} from "@/lib/auth-exchange";
 import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const INVALID_LINK_MESSAGE =
   "This reset link is invalid or has expired. Request a new one from the sign-in page or from Settings → Password & security while signed in.";
+
+function cleanAuthParamsFromUrl(url: URL) {
+  url.searchParams.delete("code");
+  url.searchParams.delete("token_hash");
+  url.searchParams.delete("type");
+  url.searchParams.delete("error");
+  url.searchParams.delete("error_code");
+  url.searchParams.delete("error_description");
+  url.searchParams.delete("message");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -31,66 +47,51 @@ export function ResetPasswordForm() {
     async function establishRecoverySession() {
       const url = new URL(window.location.href);
       const errorParam = url.searchParams.get("error");
+      const messageParam = url.searchParams.get("message");
+      const supabaseError = readSupabaseAuthError(url.searchParams);
 
-      if (errorParam === "invalid_link" || errorParam === "config") {
+      if (errorParam === "invalid_link" || errorParam === "config" || supabaseError) {
         if (!cancelled) {
-          setMessage(INVALID_LINK_MESSAGE);
+          setMessage(
+            messageParam
+              ? decodeURIComponent(messageParam)
+              : supabaseError ?? INVALID_LINK_MESSAGE,
+          );
           setChecking(false);
         }
         return;
       }
 
-      const code = url.searchParams.get("code");
-      if (code) {
-        const { error } = await sb.auth.exchangeCodeForSession(code);
-        url.searchParams.delete("code");
-        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-        if (!cancelled) {
-          if (!error) {
-            setReady(true);
-            setChecking(false);
-            return;
-          }
-          setMessage(INVALID_LINK_MESSAGE);
-          setChecking(false);
-          return;
-        }
-      }
-
-      const tokenHash = url.searchParams.get("token_hash");
-      const type = url.searchParams.get("type");
-      if (tokenHash && type === "recovery") {
-        const { error } = await sb.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: "recovery",
-        });
-        url.searchParams.delete("token_hash");
-        url.searchParams.delete("type");
-        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-        if (!cancelled) {
-          if (!error) {
-            setReady(true);
-            setChecking(false);
-            return;
-          }
-          setMessage(INVALID_LINK_MESSAGE);
-          setChecking(false);
-          return;
-        }
-      }
-
+      // Middleware may have already exchanged the token — use existing session first.
       const {
-        data: { session },
+        data: { session: existingSession },
       } = await sb.auth.getSession();
       if (cancelled) return;
-      if (session) {
+      if (existingSession) {
         setReady(true);
         setChecking(false);
+        cleanAuthParamsFromUrl(url);
         return;
       }
 
-      // Hash-based recovery links (#access_token=…&type=recovery) need a moment to parse.
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      const authParams = readAuthExchangeParams(url.searchParams);
+      if (authParams.code || authParams.tokenHash) {
+        const { error } = await exchangeEmailLinkAuth(sb, authParams);
+        cleanAuthParamsFromUrl(url);
+        if (!cancelled) {
+          if (!error) {
+            setReady(true);
+            setChecking(false);
+            return;
+          }
+          setMessage(error.message || INVALID_LINK_MESSAGE);
+          setChecking(false);
+          return;
+        }
+      }
+
+      // Hash-based recovery links (#access_token=…&type=recovery).
+      await new Promise((resolve) => setTimeout(resolve, 300));
       if (cancelled) return;
 
       const {
@@ -99,6 +100,9 @@ export function ResetPasswordForm() {
       if (retrySession) {
         setReady(true);
         setChecking(false);
+        if (window.location.hash.includes("access_token")) {
+          window.history.replaceState({}, "", PASSWORD_RESET_PATH);
+        }
         return;
       }
 
@@ -111,13 +115,7 @@ export function ResetPasswordForm() {
       data: { subscription },
     } = sb.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
-      if (
-        session &&
-        (event === "PASSWORD_RECOVERY" ||
-          event === "SIGNED_IN" ||
-          event === "INITIAL_SESSION" ||
-          event === "TOKEN_REFRESHED")
-      ) {
+      if (session && event === "PASSWORD_RECOVERY") {
         setReady(true);
         setChecking(false);
         if (window.location.hash.includes("access_token")) {

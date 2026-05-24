@@ -2,17 +2,15 @@
   Paste into Supabase → Authentication → Email templates → "Reset password"
   (Body / HTML).
 
-  Redirect URLs: add these (replace with your real domains):
-    http://localhost:3000/auth/callback
-    http://localhost:3000/auth/reset-password
+  IMPORTANT: Do NOT use {{ .ConfirmationURL }} — it uses PKCE and often fails
+  when the link is opened from email apps or sent from the Supabase dashboard
+  ("link expired"). Use the token_hash link below instead.
+
+  Redirect URLs (Supabase → Authentication → URL configuration):
+    https://care-cred.vercel.app/**
     https://care-cred.vercel.app/auth/callback
     https://care-cred.vercel.app/auth/reset-password
-    https://YOUR-VERCEL-APP.vercel.app/auth/callback
-    https://YOUR-VERCEL-APP.vercel.app/auth/reset-password
-
-  The app sends resetPasswordForEmail with redirectTo pointing at /auth/callback
-  (which exchanges the token, then forwards to /auth/reset-password).
-  Keep {{ .ConfirmationURL }} in the button href below.
+    http://localhost:3000/**
 
   Subject suggestion: Reset your CareCred password
 -->
@@ -31,7 +29,7 @@
             <tr>
               <td style="padding:28px 24px 8px 24px;">
                 <p style="margin:0;font-size:20px;font-weight:700;color:#eaf0ff;">CareCred</p>
-                <p style="margin:8px 0 0 0;font-size:13px;line-height:1.55;color:#a7b3cc;">Reset your password using the button below. If you didn’t ask for this, you can ignore this email.</p>
+                <p style="margin:8px 0 0 0;font-size:13px;line-height:1.55;color:#a7b3cc;">Reset your password using the button below. If you didn’t ask for this, you can ignore this email. Each link works once.</p>
               </td>
             </tr>
             <tr>
@@ -40,18 +38,18 @@
                 <ol style="margin:10px 0 0 0;padding-left:1.25rem;font-size:13px;line-height:1.6;color:#a7b3cc;">
                   <li style="margin-bottom:8px;">Click <strong style="color:#eaf0ff;">Continue to CareCred</strong> — we’ll open our site so you can choose a new password.</li>
                   <li style="margin-bottom:8px;">Enter and confirm your new password on that page, then you’re done signing in with it.</li>
-                  <li>Later, you can change your password anytime: sign in → open <strong style="color:#eaf0ff;">Edit profile</strong> (from your account) → expand <strong style="color:#eaf0ff;">Password &amp; security</strong>.</li>
+                  <li>Later, you can change your password anytime: sign in → open <strong style="color:#eaf0ff;">Edit profile</strong> → expand <strong style="color:#eaf0ff;">Password &amp; security</strong>.</li>
                 </ol>
               </td>
             </tr>
             <tr>
               <td style="padding:20px 24px 28px 24px;" align="left">
-                <a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#6e7dff;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px;">Continue to CareCred</a>
+                <a href="{{ .SiteURL }}/auth/callback?next=%2Fauth%2Freset-password&amp;token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;background-color:#6e7dff;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px;">Continue to CareCred</a>
               </td>
             </tr>
             <tr>
               <td style="padding:0 24px 24px 24px;border-top:1px solid #2a344a;">
-                <p style="margin:16px 0 0 0;font-size:11px;line-height:1.5;color:#6b7280;word-break:break-all;">If the button doesn’t work, copy this link into your browser:<br /><a href="{{ .ConfirmationURL }}" style="color:#8090ff;">{{ .ConfirmationURL }}</a></p>
+                <p style="margin:16px 0 0 0;font-size:11px;line-height:1.5;color:#6b7280;word-break:break-all;">If the button doesn’t work, copy this link into your browser:<br /><a href="{{ .SiteURL }}/auth/callback?next=%2Fauth%2Freset-password&amp;token_hash={{ .TokenHash }}&amp;type=recovery" style="color:#8090ff;">{{ .SiteURL }}/auth/callback?next=%2Fauth%2Freset-password&amp;token_hash={{ .TokenHash }}&amp;type=recovery</a></p>
               </td>
             </tr>
           </table>

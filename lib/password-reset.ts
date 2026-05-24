@@ -1,12 +1,23 @@
 /** Where users choose a new password after following the email link. */
 export const PASSWORD_RESET_PATH = "/auth/reset-password";
 
-/** Supabase PKCE / OTP links must land here first so we can establish a session. */
+/** Supabase email tokens are exchanged here, then the user is sent to reset-password. */
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
+const RESET_NEXT_PARAM = encodeURIComponent(PASSWORD_RESET_PATH);
+
+/** Used by resetPasswordForEmail({ redirectTo }). Must be allow-listed in Supabase. */
 export function buildPasswordResetRedirectTo(origin: string): string {
-  const next = encodeURIComponent(PASSWORD_RESET_PATH);
-  return `${origin}${AUTH_CALLBACK_PATH}?next=${next}`;
+  return `${origin}${AUTH_CALLBACK_PATH}?next=${RESET_NEXT_PARAM}`;
+}
+
+/**
+ * Paste into Supabase → Authentication → Email templates → Reset password.
+ * Uses token_hash so links work from email apps and Supabase dashboard sends.
+ */
+export function buildRecoveryEmailLink(siteUrl: string): string {
+  const origin = siteUrl.replace(/\/$/, "");
+  return `${origin}${AUTH_CALLBACK_PATH}?next=${RESET_NEXT_PARAM}&token_hash={{ .TokenHash }}&type=recovery`;
 }
 
 export function getPasswordResetRedirectTo(): string {

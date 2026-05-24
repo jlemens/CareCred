@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  exchangeEmailLinkAuth,
+  readAuthExchangeParams,
+} from "@/lib/auth-exchange";
 import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -38,31 +42,23 @@ export function AuthEmailLinkHandler({ preferPasswordReset = false }: Props) {
         }
       }
 
-      const code = url.searchParams.get("code");
-      const tokenHash = url.searchParams.get("token_hash");
-      const type = url.searchParams.get("type");
-
-      if (code) {
-        const { error } = await sb.auth.exchangeCodeForSession(code);
-        url.searchParams.delete("code");
-        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-        if (!cancelled && !error) {
-          router.replace(preferPasswordReset ? PASSWORD_RESET_PATH : "/");
-          return;
-        }
+      const {
+        data: { session },
+      } = await sb.auth.getSession();
+      if (session && preferPasswordReset) {
+        router.replace(PASSWORD_RESET_PATH);
+        return;
       }
 
-      if (tokenHash && type === "recovery") {
-        const { error } = await sb.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: "recovery",
-        });
+      const authParams = readAuthExchangeParams(url.searchParams);
+      if (authParams.code || authParams.tokenHash) {
+        const { error } = await exchangeEmailLinkAuth(sb, authParams);
+        url.searchParams.delete("code");
         url.searchParams.delete("token_hash");
         url.searchParams.delete("type");
         window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
         if (!cancelled && !error) {
-          router.replace(PASSWORD_RESET_PATH);
-          return;
+          router.replace(preferPasswordReset ? PASSWORD_RESET_PATH : "/");
         }
       }
     }

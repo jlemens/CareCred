@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  exchangeEmailLinkAuth,
   readAuthExchangeParams,
+  readSupabaseAuthError,
   resolveAuthExchangeRedirect,
   stripAuthExchangeParams,
 } from "@/lib/auth-exchange";
@@ -9,7 +11,18 @@ import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const { code, tokenHash, type } = readAuthExchangeParams(requestUrl.searchParams);
+  const authParams = readAuthExchangeParams(requestUrl.searchParams);
+  const supabaseAuthError = readSupabaseAuthError(requestUrl.searchParams);
+
+  if (supabaseAuthError && !authParams.code && !authParams.tokenHash) {
+    return NextResponse.redirect(
+      new URL(
+        `${PASSWORD_RESET_PATH}?error=invalid_link&message=${encodeURIComponent(supabaseAuthError)}`,
+        requestUrl.origin,
+      ),
+    );
+  }
+
   const nextPath = resolveAuthExchangeRedirect(
     requestUrl.pathname,
     requestUrl.searchParams,
@@ -41,24 +54,15 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (authParams.code || authParams.tokenHash) {
+    const { error } = await exchangeEmailLinkAuth(supabase, authParams);
     if (!error) {
       return response;
     }
   }
 
-  if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type,
-    });
-    if (!error) {
-      return response;
-    }
-  }
-
-  return NextResponse.redirect(
-    new URL(`${PASSWORD_RESET_PATH}?error=invalid_link`, requestUrl.origin),
-  );
+  const errorTarget = stripAuthExchangeParams(requestUrl);
+  errorTarget.pathname = PASSWORD_RESET_PATH;
+  errorTarget.searchParams.set("error", "invalid_link");
+  return NextResponse.redirect(errorTarget);
 }

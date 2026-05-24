@@ -1,15 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  exchangeEmailLinkAuth,
   readAuthExchangeParams,
+  readSupabaseAuthError,
   resolveAuthExchangeRedirect,
   stripAuthExchangeParams,
 } from "@/lib/auth-exchange";
 import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 
 /**
- * Refresh Supabase sessions and exchange email-link codes (signup, recovery, etc.)
- * before route handlers / pages run.
+ * Refresh Supabase sessions and exchange email-link tokens before pages run.
  */
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,9 +20,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { code, tokenHash, type } = readAuthExchangeParams(request.nextUrl.searchParams);
+  const authParams = readAuthExchangeParams(request.nextUrl.searchParams);
+  const supabaseAuthError = readSupabaseAuthError(request.nextUrl.searchParams);
 
-  if (code || (tokenHash && type)) {
+  if (supabaseAuthError && !authParams.code && !authParams.tokenHash) {
+    return NextResponse.redirect(
+      new URL(
+        `${PASSWORD_RESET_PATH}?error=invalid_link&message=${encodeURIComponent(supabaseAuthError)}`,
+        request.nextUrl.origin,
+      ),
+    );
+  }
+
+  if (authParams.code || (authParams.tokenHash && authParams.type)) {
     const nextPath = resolveAuthExchangeRedirect(
       request.nextUrl.pathname,
       request.nextUrl.searchParams,
@@ -44,19 +55,9 @@ export async function middleware(request: NextRequest) {
       },
     });
 
-    if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (!error) {
-        return response;
-      }
-    } else if (tokenHash && type) {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type,
-      });
-      if (!error) {
-        return response;
-      }
+    const { error } = await exchangeEmailLinkAuth(supabase, authParams);
+    if (!error) {
+      return response;
     }
 
     const errorTarget = stripAuthExchangeParams(request.nextUrl);
