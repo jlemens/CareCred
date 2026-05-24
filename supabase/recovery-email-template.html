@@ -3,9 +3,16 @@
   (Body / HTML).
 
   Redirect URLs: add these (replace with your real domains):
+    http://localhost:3000/auth/callback
     http://localhost:3000/auth/reset-password
+    https://care-cred.vercel.app/auth/callback
+    https://care-cred.vercel.app/auth/reset-password
+    https://YOUR-VERCEL-APP.vercel.app/auth/callback
     https://YOUR-VERCEL-APP.vercel.app/auth/reset-password
-    https://your-production-domain.com/auth/reset-password
+
+  The app sends resetPasswordForEmail with redirectTo pointing at /auth/callback
+  (which exchanges the token, then forwards to /auth/reset-password).
+  Keep {{ .ConfirmationURL }} in the button href below.
 
   Subject suggestion: Reset your CareCred password
 -->

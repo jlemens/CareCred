@@ -55,13 +55,14 @@ After the first deploy, copy your production URL (e.g. `https://carecred-xxx.ver
 In **Supabase Dashboard** → **Authentication** → **URL configuration**:
 
 1. **Site URL:** your Vercel URL (or your future custom domain).
-2. **Redirect URLs:** add:
+2. **Redirect URLs:** add (replace with your Vercel URL or use the wildcard):
    - `https://YOUR-APP.vercel.app/**`
-   - `https://YOUR-APP.vercel.app/` (default after sign-in / email links)
-   - `https://YOUR-APP.vercel.app/dashboard` (settings / onboarding)
-   - `http://localhost:3000/**` (optional, for local dev)
+   - `https://YOUR-APP.vercel.app/auth/callback` (password reset — required)
+   - `https://YOUR-APP.vercel.app/auth/reset-password` (password reset landing)
+   - `http://localhost:3000/auth/callback` (local dev)
+   - `http://localhost:3000/**` (optional, local dev)
 
-This matters for **email confirmation links** and OAuth if you add it later.
+   Password reset emails use `/auth/callback` to exchange Supabase’s one-time code, then send the user to `/auth/reset-password` to choose a new password.
 
 ## 4. Smoke test on iPhone
 

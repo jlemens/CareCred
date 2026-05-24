@@ -3,7 +3,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+
+const INVALID_LINK_MESSAGE =
+  "This reset link is invalid or has expired. Request a new one from the sign-in page or from Settings → Password & security while signed in.";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -24,39 +28,103 @@ export function ResetPasswordForm() {
     const sb = supabase;
     let cancelled = false;
 
-    async function checkSession() {
-      const { data: { session } } = await sb.auth.getSession();
+    async function establishRecoverySession() {
+      const url = new URL(window.location.href);
+      const errorParam = url.searchParams.get("error");
+
+      if (errorParam === "invalid_link" || errorParam === "config") {
+        if (!cancelled) {
+          setMessage(INVALID_LINK_MESSAGE);
+          setChecking(false);
+        }
+        return;
+      }
+
+      const code = url.searchParams.get("code");
+      if (code) {
+        const { error } = await sb.auth.exchangeCodeForSession(code);
+        url.searchParams.delete("code");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        if (!cancelled) {
+          if (!error) {
+            setReady(true);
+            setChecking(false);
+            return;
+          }
+          setMessage(INVALID_LINK_MESSAGE);
+          setChecking(false);
+          return;
+        }
+      }
+
+      const tokenHash = url.searchParams.get("token_hash");
+      const type = url.searchParams.get("type");
+      if (tokenHash && type === "recovery") {
+        const { error } = await sb.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery",
+        });
+        url.searchParams.delete("token_hash");
+        url.searchParams.delete("type");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        if (!cancelled) {
+          if (!error) {
+            setReady(true);
+            setChecking(false);
+            return;
+          }
+          setMessage(INVALID_LINK_MESSAGE);
+          setChecking(false);
+          return;
+        }
+      }
+
+      const {
+        data: { session },
+      } = await sb.auth.getSession();
       if (cancelled) return;
       if (session) {
         setReady(true);
         setChecking(false);
         return;
       }
-      await new Promise((r) => setTimeout(r, 150));
+
+      // Hash-based recovery links (#access_token=…&type=recovery) need a moment to parse.
+      await new Promise((resolve) => setTimeout(resolve, 250));
       if (cancelled) return;
-      const { data: { session: s2 } } = await sb.auth.getSession();
-      if (s2) {
+
+      const {
+        data: { session: retrySession },
+      } = await sb.auth.getSession();
+      if (retrySession) {
         setReady(true);
+        setChecking(false);
+        return;
       }
+
       setChecking(false);
     }
 
-    void checkSession();
+    void establishRecoverySession();
 
-    const { data: { subscription } } = sb.auth.onAuthStateChange(
-      (event, session) => {
-        if (cancelled) return;
-        if (
-          session &&
-          (event === "PASSWORD_RECOVERY" ||
-            event === "SIGNED_IN" ||
-            event === "INITIAL_SESSION")
-        ) {
-          setReady(true);
-          setChecking(false);
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+      if (
+        session &&
+        (event === "PASSWORD_RECOVERY" ||
+          event === "SIGNED_IN" ||
+          event === "INITIAL_SESSION" ||
+          event === "TOKEN_REFRESHED")
+      ) {
+        setReady(true);
+        setChecking(false);
+        if (window.location.hash.includes("access_token")) {
+          window.history.replaceState({}, "", PASSWORD_RESET_PATH);
         }
-      },
-    );
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -102,25 +170,13 @@ export function ResetPasswordForm() {
   }
 
   if (checking) {
-    return (
-      <p className="text-sm text-muted">Checking your reset link…</p>
-    );
+    return <p className="text-sm text-muted">Checking your reset link…</p>;
   }
 
   if (!ready) {
     return (
       <div className="space-y-3 text-sm">
-        <p className="text-muted">
-          This reset link is invalid or has expired. Request a new one from the
-          sign-in page or from{" "}
-          <Link
-            href="/dashboard#password"
-            className="font-medium text-accent-secondary underline-offset-2 hover:underline"
-          >
-            Settings → Password &amp; security
-          </Link>{" "}
-          while signed in.
-        </p>
+        <p className="text-muted">{message ?? INVALID_LINK_MESSAGE}</p>
         <Link
           href="/auth"
           className="inline-flex min-h-11 items-center rounded-md bg-accent-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover"
