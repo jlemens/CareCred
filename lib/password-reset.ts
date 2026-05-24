@@ -5,9 +5,8 @@ export const PASSWORD_RESET_PATH = "/auth/reset-password";
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
 export function buildPasswordResetRedirectTo(origin: string): string {
-  // Direct path; middleware exchanges ?code= on this URL before the page loads.
-  // Also allow-list this exact URL in Supabase → Authentication → Redirect URLs.
-  return `${origin}${PASSWORD_RESET_PATH}`;
+  const next = encodeURIComponent(PASSWORD_RESET_PATH);
+  return `${origin}${AUTH_CALLBACK_PATH}?next=${next}`;
 }
 
 export function getPasswordResetRedirectTo(): string {

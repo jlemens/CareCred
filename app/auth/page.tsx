@@ -1,3 +1,4 @@
+import { AuthEmailLinkHandler } from "@/components/auth-email-link-handler";
 import { AuthPanel } from "@/components/auth-panel";
 import { hasSupabaseEnv } from "@/lib/env";
 
@@ -12,6 +13,7 @@ export default async function AuthPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto grid w-full max-w-lg gap-6">
+      <AuthEmailLinkHandler preferPasswordReset />
       <div className="text-center">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           CareCred
