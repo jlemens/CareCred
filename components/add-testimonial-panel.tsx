@@ -4,16 +4,19 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { NewReviewForm } from "@/components/new-review-form";
 
-type Flow = "closed" | "pick-type" | "pt-survey";
+type Flow = "closed" | "pick-type" | "standard-review";
 
 type Props = {
   providerProfileId: string;
+  /** Public profile path slug; used after a successful submit to return to the provider page. */
+  providerSlug: string;
   disabled?: boolean;
   disabledMessage?: string;
 };
 
 export function AddTestimonialPanel({
   providerProfileId,
+  providerSlug,
   disabled = false,
   disabledMessage,
 }: Props) {
@@ -72,25 +75,25 @@ export function AddTestimonialPanel({
                 <li>
                   <button
                     type="button"
-                    onClick={() => setFlow("pt-survey")}
-                    className="w-full rounded-md border border-border p-4 text-left transition hover:bg-surface-alt"
+                    onClick={() => setFlow("standard-review")}
+                    className="w-full rounded-lg border-2 border-accent-primary/80 bg-accent-primary/10 p-4 text-left shadow-sm ring-1 ring-accent-primary/20 transition hover:bg-accent-primary/15"
                   >
-                    <span className="font-medium text-foreground">
-                      Quick star rating
+                    <span className="text-base font-semibold text-foreground">
+                      Standard review
                     </span>
                     <span className="mt-1 block text-sm text-muted">
-                      Tap stars for one overall 1–5 score — no written responses
-                      required.
+                      Overall star rating plus a few short category ratings—our
+                      default way to leave feedback for a provider.
                     </span>
                   </button>
                 </li>
                 <li>
-                  <div className="rounded-md border border-dashed border-border p-4 opacity-70">
-                    <span className="font-medium text-foreground">
+                  <div className="rounded-md border border-border/60 bg-surface-alt/30 px-3 py-2.5 text-left">
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted">
                       More survey types
                     </span>
-                    <span className="mt-1 block text-sm text-muted">
-                      Coming soon — additional specialties and formats.
+                    <span className="mt-0.5 block text-xs text-muted/90">
+                      Coming later—no extra options yet.
                     </span>
                   </div>
                 </li>
@@ -98,7 +101,7 @@ export function AddTestimonialPanel({
             </>
           ) : null}
 
-          {flow === "pt-survey" ? (
+          {flow === "standard-review" ? (
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <button
@@ -117,15 +120,20 @@ export function AddTestimonialPanel({
                 </button>
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Quick star rating</h2>
+                <h2 className="text-lg font-semibold">Standard review</h2>
                 <p className="mt-1 text-sm text-muted">
-                  Your stars appear publicly on this profile after you submit.
+                  Only overall rating, recommendation, and state are required.
+                  Submit when you’re ready.
                 </p>
               </div>
               <NewReviewForm
                 providerProfileId={providerProfileId}
                 embedded
-                onSubmitted={() => router.refresh()}
+                onSubmitted={() => {
+                  setFlow("closed");
+                  router.push(`/u/${providerSlug}`);
+                  router.refresh();
+                }}
               />
             </>
           ) : null}

@@ -2,98 +2,84 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { LogoutButton } from "@/components/logout-button";
 
-async function loadHeaderProfile(
-  client: SupabaseClient,
-  setSignedIn: (v: boolean) => void,
-  setSlug: (v: string | null) => void,
-) {
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-  if (!user) {
-    setSignedIn(false);
-    setSlug(null);
-    return;
-  }
-  setSignedIn(true);
-  const { data } = await client
-    .from("profiles")
-    .select("slug")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  setSlug(data?.slug ?? null);
-}
-
 export function AppHeader() {
-  const [slug, setSlug] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  /** Avoid flashing the pulse before we know if a session exists. */
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
     const client = getSupabaseBrowserClient();
     if (!client) {
+      setSessionReady(true);
       return;
     }
 
-    void loadHeaderProfile(client, setSignedIn, setSlug);
+    async function loadSession() {
+      try {
+        const {
+          data: { session },
+        } = await client!.auth.getSession();
+        setSignedIn(Boolean(session?.user));
+        setEmail(session?.user?.email ?? null);
+      } finally {
+        setSessionReady(true);
+      }
+    }
+
+    void loadSession();
 
     const {
       data: { subscription },
-    } = client.auth.onAuthStateChange(() => {
-      void loadHeaderProfile(client, setSignedIn, setSlug);
+    } = client.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session?.user));
+      setEmail(session?.user?.email ?? null);
+      setSessionReady(true);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   return (
-    <header className="border-b border-border/80 bg-surface/80 backdrop-blur">
-      <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-        <Link
-          href="/"
-          className="text-lg font-semibold tracking-tight"
-          title="CareCred home"
-        >
-          CareCred
-        </Link>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-muted">
-          <Link href="/search" className="transition hover:text-foreground">
-            Find Providers
+    <header className="w-full min-w-0 border-b border-border/80 bg-surface/80 backdrop-blur">
+      <nav className="mx-auto flex w-full min-w-0 max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="min-w-0">
+          <Link
+            href="/"
+            className="block rounded-sm bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-2xl font-extrabold tracking-tight text-transparent drop-shadow-[0_0_22px_rgba(110,125,255,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent-secondary sm:text-3xl"
+            title="CareCred home"
+          >
+            CareCred
           </Link>
-
           {signedIn ? (
-            <>
-              {slug ? (
-                <Link
-                  href={`/u/${slug}`}
-                  className="rounded-md bg-accent-primary px-3 py-1.5 font-medium text-white transition hover:bg-accent-hover"
-                >
-                  My page
-                </Link>
-              ) : null}
-              <Link
-                href="/dashboard"
-                className="rounded-md border border-border px-3 py-1.5 transition hover:bg-surface-alt hover:text-foreground"
-              >
-                Account
-              </Link>
-              <LogoutButton />
-            </>
+            <p className="mt-0.5 truncate text-xs text-muted sm:text-sm">
+              Signed in as {email ?? "your account"}
+            </p>
           ) : (
-            <>
-              <Link href="/auth" className="transition hover:text-foreground">
-                Sign in
-              </Link>
-              <Link
-                href="/auth"
-                className="rounded-md border border-border px-3 py-1.5 transition hover:bg-surface-alt hover:text-foreground"
-              >
-                Create account
-              </Link>
-            </>
+            <p className="mt-0.5 text-xs text-muted sm:text-sm">
+              Build trust with every patient story.
+            </p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3 text-sm text-muted">
+          {signedIn ? (
+            <LogoutButton />
+          ) : (
+            /* Signed-in users never see this link — no pulse when authenticated. */
+            <Link
+              href="/auth"
+              className={
+                sessionReady
+                  ? "header-signin-pulse rounded-md border border-border bg-surface-alt/40 px-3 py-1.5 font-medium text-foreground transition hover:bg-surface-alt hover:brightness-110"
+                  : "rounded-md border border-border px-3 py-1.5 transition hover:bg-surface-alt hover:text-foreground"
+              }
+            >
+              Sign in
+            </Link>
           )}
         </div>
       </nav>

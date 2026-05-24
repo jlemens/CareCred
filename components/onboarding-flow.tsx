@@ -83,6 +83,7 @@ export function OnboardingFlow({ userId, email }: Props) {
           profile_type: state.profileType,
         }}
         lockProfileType
+        isFirstTimeProfile
       />
     </div>
   );

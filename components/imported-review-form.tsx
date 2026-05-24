@@ -10,6 +10,7 @@ export function ImportedReviewForm({ providerProfileId }: Props) {
   const [guestName, setGuestName] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [isPatientOuttake, setIsPatientOuttake] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,7 @@ export function ImportedReviewForm({ providerProfileId }: Props) {
         guestName,
         reviewText,
         sourceUrl,
+        isPatientOuttake,
         accepted,
       }),
     });
@@ -42,63 +44,79 @@ export function ImportedReviewForm({ providerProfileId }: Props) {
     setGuestName("");
     setReviewText("");
     setSourceUrl("");
+    setIsPatientOuttake(false);
     setAccepted(false);
     setLoading(false);
   }
 
   return (
-    <form onSubmit={onSubmit} className="card space-y-4 p-6">
-      <h3 className="text-base font-semibold">Add Google review manually</h3>
-      <p className="text-sm text-muted">
-        Copy/paste a review and include a source label with disclaimer
-        attestation.
-      </p>
-      <label className="block space-y-2">
-        <span className="text-sm text-muted">Reviewer name as shown</span>
-        <input
-          value={guestName}
-          onChange={(e) => setGuestName(e.target.value)}
-          required
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-      </label>
-      <label className="block space-y-2">
-        <span className="text-sm text-muted">Review text</span>
-        <textarea
-          rows={4}
-          value={reviewText}
-          onChange={(e) => setReviewText(e.target.value)}
-          required
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-      </label>
-      <label className="block space-y-2">
-        <span className="text-sm text-muted">Source URL (optional)</span>
-        <input
-          value={sourceUrl}
-          onChange={(e) => setSourceUrl(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-      </label>
-      <label className="flex items-start gap-2 text-sm text-muted">
-        <input
-          type="checkbox"
-          checked={accepted}
-          onChange={(e) => setAccepted(e.target.checked)}
-          className="mt-0.5"
-          required
-        />
-        I confirm this text was copied from Google Reviews or another public
-        source and can be shared here with attribution.
-      </label>
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-md border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-alt disabled:opacity-60"
-      >
-        {loading ? "Saving..." : "Save imported review"}
-      </button>
-      {message ? <p className="text-sm text-muted">{message}</p> : null}
-    </form>
+    <section className="card p-6">
+      <details>
+        <summary className="cursor-pointer text-sm font-medium text-foreground">
+          Add review manually
+        </summary>
+        <form onSubmit={onSubmit} className="mt-3 space-y-4">
+          <p className="text-sm text-muted">
+            Copy/paste a review from Google or from your patient out-take form.
+            We will label the source publicly.
+          </p>
+          <label className="block space-y-2">
+            <span className="text-sm text-muted">Reviewer name as shown</span>
+            <input
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              required
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm text-muted">Review text</span>
+            <textarea
+              rows={4}
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              required
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm text-muted">Source URL (optional)</span>
+            <input
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex items-start gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={isPatientOuttake}
+              onChange={(e) => setIsPatientOuttake(e.target.checked)}
+              className="mt-0.5"
+            />
+            Mark this review as from a patient out-take form.
+          </label>
+          <label className="flex items-start gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="mt-0.5"
+              required
+            />
+            I confirm this text was copied from Google Reviews, a patient
+            out-take form, or another source I am authorized to share.
+          </label>
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium transition hover:bg-surface-alt disabled:opacity-60"
+          >
+            {loading ? "Saving..." : "Save imported review"}
+          </button>
+          {message ? <p className="text-sm text-muted">{message}</p> : null}
+        </form>
+      </details>
+    </section>
   );
 }

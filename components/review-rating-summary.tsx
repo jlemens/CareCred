@@ -3,10 +3,11 @@ import type { PtSurveyStarStats } from "@/lib/review-ratings";
 
 type Props = {
   stats: PtSurveyStarStats;
+  hiddenCount?: number;
 };
 
-export function ReviewRatingSummary({ stats }: Props) {
-  const { average, count, histogram } = stats;
+export function ReviewRatingSummary({ stats, hiddenCount }: Props) {
+  const { average, count, histogram, recommendPercent } = stats;
   const maxBar = Math.max(
     1,
     histogram[1],
@@ -19,23 +20,37 @@ export function ReviewRatingSummary({ stats }: Props) {
   return (
     <section className="card p-5 sm:p-6">
       <h2 className="text-lg font-semibold">Survey ratings</h2>
-      <p className="mt-1 text-sm text-muted">
-        Averages use each submitted star rating (quick survey only). Imported
-        reviews are listed separately and are not included here.
-      </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <StarRatingDisplay value={Math.round(average)} className="text-2xl" />
-        <div>
-          <p className="text-2xl font-semibold tabular-nums">
-            {average.toFixed(2)}
-            <span className="text-base font-normal text-muted"> / 5</span>
-          </p>
-          <p className="text-xs text-muted">
-            Based on {count} rating{count === 1 ? "" : "s"}
-          </p>
-        </div>
+        <p className="text-2xl font-semibold tabular-nums">
+          {average.toFixed(2)}
+          <span className="text-base font-normal text-muted"> / 5</span>
+        </p>
       </div>
+
+      <div
+        className="mt-4 rounded-lg border border-success/35 bg-success/10 px-4 py-3 sm:px-5 sm:py-3.5"
+        role="status"
+      >
+        <p className="text-base font-semibold text-success sm:text-lg">
+          Recommended by {recommendPercent}% of reviewers
+        </p>
+      </div>
+
+      <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+        <span>
+          Based on {count} rating{count === 1 ? "" : "s"}
+        </span>
+        {typeof hiddenCount === "number" ? (
+          <>
+            <span className="text-muted/50" aria-hidden>
+              ·
+            </span>
+            <span>Hidden reviews: {hiddenCount}</span>
+          </>
+        ) : null}
+      </p>
 
       <div className="mt-6 space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-muted">

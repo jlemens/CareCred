@@ -1,11 +1,18 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Profile, ProfileType } from "@/lib/types";
+import { AccountPasswordCollapsible } from "@/components/account-password-collapsible";
+import { AvatarCropModal } from "@/components/avatar-crop-modal";
 import { prepareAvatarForUpload } from "@/lib/image-compress";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { namesFromProfile } from "@/lib/profile-names";
+import { reviewerStateSelectOptions } from "@/lib/us-states";
+
+function RequiredMark() {
+  return <span className="font-medium text-danger"> (required)</span>;
+}
 
 /** Max size of the original file picked from the device (before compression). */
 const AVATAR_RAW_MAX_BYTES = 35 * 1024 * 1024;
@@ -18,9 +25,16 @@ type Props = {
   initial: Partial<Profile> & { email?: string };
   /** When true (first-time onboarding), profile type cannot be changed here. */
   lockProfileType?: boolean;
+  /** First profile creation — show slug “one change” policy. */
+  isFirstTimeProfile?: boolean;
 };
 
-export function ProfileEditor({ userId, initial, lockProfileType = false }: Props) {
+export function ProfileEditor({
+  userId,
+  initial,
+  lockProfileType = false,
+  isFirstTimeProfile = false,
+}: Props) {
   const router = useRouter();
   const { first: initialFirst, last: initialLast } = namesFromProfile(initial);
 
@@ -33,49 +47,53 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url ?? "");
   const [practiceName, setPracticeName] = useState(initial.practice_name ?? "");
   const [credentials, setCredentials] = useState(initial.credentials ?? "");
+  const [profession, setProfession] = useState(initial.profession ?? "");
   const [specialties, setSpecialties] = useState(initial.specialties ?? "");
   const [education, setEducation] = useState(initial.education ?? "");
   const [yearsExperience, setYearsExperience] = useState(
     initial.years_experience?.toString() ?? "",
   );
   const [location, setLocation] = useState(initial.location ?? "");
+  const [homeState, setHomeState] = useState(initial.home_state ?? "");
   const [bio, setBio] = useState(initial.bio ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [avatarCropSrc, setAvatarCropSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+
+  useEffect(() => {
+    return () => {
+      if (avatarCropSrc) URL.revokeObjectURL(avatarCropSrc);
+    };
+  }, [avatarCropSrc]);
+
+  const slugLocked = Boolean(initial.id);
 
   const displayPreview = useMemo(() => {
     const combined = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
     return combined || "—";
   }, [firstName, lastName]);
 
-  const profileLink = useMemo(
-    () =>
-      typeof window !== "undefined" && slug
-        ? `${window.location.origin}/u/${slug}`
-        : "",
-    [slug],
-  );
-
-  async function handleAvatarFile(file: File) {
+  /** Returns true when the public avatar URL was updated. */
+  async function handleAvatarFile(file: File): Promise<boolean> {
     setUploadError(null);
     if (!supabase) {
       setUploadError("Supabase is not configured.");
-      return;
+      return false;
     }
     if (!AVATAR_TYPES.includes(file.type)) {
       setUploadError("Use JPG, PNG, WebP, or GIF.");
-      return;
+      return false;
     }
     if (file.size > AVATAR_RAW_MAX_BYTES) {
       setUploadError(
         "This file is too large to open in the browser. Try a photo under 35 MB or pick a different image.",
       );
-      return;
+      return false;
     }
 
     setUploadingAvatar(true);
@@ -89,8 +107,7 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
           setUploadError(
             "GIF must be 15 MB or smaller, or use JPG/PNG (large photos are compressed automatically).",
           );
-          setUploadingAvatar(false);
-          return;
+          return false;
         }
         uploadBlob = file;
         ext = "gif";
@@ -123,21 +140,30 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
         } else {
           setUploadError(error.message);
         }
-        setUploadingAvatar(false);
-        return;
+        return false;
       }
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("avatars").getPublicUrl(path);
-      setAvatarUrl(publicUrl);
+      const bustCache = `${publicUrl}?t=${Date.now()}`;
+      setAvatarUrl(bustCache);
+      return true;
     } catch (err) {
       setUploadError(
         err instanceof Error ? err.message : "Could not process this image.",
       );
+      return false;
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function clearAvatarCrop() {
+    if (avatarCropSrc) {
+      URL.revokeObjectURL(avatarCropSrc);
+      setAvatarCropSrc(null);
     }
   }
 
@@ -146,12 +172,38 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
     setLoading(true);
     setMessage(null);
 
+    if (profileType === "provider") {
+      if (!avatarUrl.trim()) {
+        setMessage(
+          "Add a profile photo (upload a file or paste an image URL) to save.",
+        );
+        setLoading(false);
+        return;
+      }
+      if (!bio.trim()) {
+        setMessage("About you is required for provider accounts.");
+        setLoading(false);
+        return;
+      }
+      if (!profession.trim()) {
+        setMessage("Profession is required for provider accounts.");
+        setLoading(false);
+        return;
+      }
+    }
+    if (profileType === "patient" && !homeState) {
+      setMessage("Select your state.");
+      setLoading(false);
+      return;
+    }
+
     const payload = {
       profileType,
       firstName,
       lastName,
       slug,
       avatarUrl,
+      profession: profileType === "provider" ? profession : "",
       practiceName,
       specialties,
       education,
@@ -159,6 +211,7 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
       yearsExperience,
       location,
       bio,
+      homeState: profileType === "patient" ? homeState : undefined,
     };
 
     const response = await fetch("/api/profile", {
@@ -174,19 +227,38 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
       return;
     }
 
-    setMessage("Profile saved.");
     setLoading(false);
-    router.refresh();
+    router.push("/dashboard");
   }
 
   return (
-    <form onSubmit={onSubmit} className="card space-y-4 p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <>
+      {avatarCropSrc ? (
+        <AvatarCropModal
+          imageSrc={avatarCropSrc}
+          onCancel={clearAvatarCrop}
+          onApply={async (croppedFile) => {
+            const ok = await handleAvatarFile(croppedFile);
+            if (ok) clearAvatarCrop();
+          }}
+        />
+      ) : null}
+    <form
+      onSubmit={onSubmit}
+      className="card w-full min-w-0 space-y-4 p-5 sm:p-6"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <h2 className="text-lg font-semibold">Profile settings</h2>
         {initial.email ? (
-          <p className="text-xs text-muted">Account email: {initial.email}</p>
+          <p className="shrink-0 text-xs text-muted sm:max-w-[min(100%,20rem)] sm:text-right">
+            Account email: {initial.email}
+          </p>
         ) : null}
       </div>
+
+      {initial.email ? (
+        <AccountPasswordCollapsible accountEmail={initial.email} />
+      ) : null}
 
       {lockProfileType ? (
         <p className="rounded-md border border-border bg-surface-alt px-3 py-2 text-sm">
@@ -211,7 +283,10 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block space-y-2">
-          <span className="text-sm text-muted">First name</span>
+          <span className="text-sm text-muted">
+            First name
+            <RequiredMark />
+          </span>
           <input
             required
             value={firstName}
@@ -221,9 +296,15 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
           />
         </label>
         <label className="block space-y-2">
-          <span className="text-sm text-muted">Last name</span>
+          <span className="text-sm text-muted">
+            Last name
+            {profileType === "provider" ? <RequiredMark /> : null}
+            {profileType === "patient" ? (
+              <span className="font-normal text-muted"> (optional)</span>
+            ) : null}
+          </span>
           <input
-            required
+            required={profileType === "provider"}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             autoComplete="family-name"
@@ -237,81 +318,163 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
         <span className="font-medium text-foreground">{displayPreview}</span>
       </p>
 
+      {profileType === "patient" ? (
+        <label className="block space-y-2">
+          <span className="text-sm text-muted">
+            State you live in
+            <RequiredMark />
+          </span>
+          <span className="block text-xs text-muted">
+            Same options as when you leave a standard review.
+          </span>
+          <select
+            required
+            value={homeState}
+            onChange={(e) => setHomeState(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">Select state</option>
+            {reviewerStateSelectOptions.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+
       <label className="block space-y-2">
-        <span className="text-sm text-muted">Public slug</span>
+        <span className="text-sm text-muted">
+          Public slug
+          <RequiredMark />
+        </span>
+        <span className="block text-xs text-muted">
+          (what your public link will be)
+        </span>
+        {isFirstTimeProfile ? (
+          <p className="text-xs text-muted">
+            This becomes your permanent public URL (
+            <span className="font-mono text-foreground/90">/u/your-slug</span>).
+            You won&apos;t be able to change it after you save your profile.
+          </p>
+        ) : null}
+        {slugLocked ? (
+          <p className="text-xs text-muted">
+            Public link:{" "}
+            <span className="font-mono text-foreground">/u/{slug}</span> (can&apos;t
+            be changed).
+          </p>
+        ) : null}
         <input
           required
           value={slug}
           onChange={(e) => setSlug(e.target.value.toLowerCase())}
           placeholder="jane-doe-pt"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          disabled={slugLocked}
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
         />
       </label>
 
+      <div className="space-y-3">
+        <span className="text-sm text-muted">
+          Profile photo
+          {profileType === "provider" ? <RequiredMark /> : null}
+          {profileType === "patient" ? (
+            <span className="font-normal text-muted"> (optional)</span>
+          ) : null}
+        </span>
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-alt">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="px-2 text-center text-xs text-muted">No photo</span>
+            )}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              disabled={uploadingAvatar || !supabase || Boolean(avatarCropSrc)}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                if (f.type === "image/gif") {
+                  void handleAvatarFile(f);
+                  return;
+                }
+                clearAvatarCrop();
+                setAvatarCropSrc(URL.createObjectURL(f));
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-accent-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-accent-hover"
+            />
+            {uploadingAvatar ? (
+              <p className="text-xs text-muted">Uploading...</p>
+            ) : null}
+            {uploadError ? (
+              <p className="text-xs text-danger">{uploadError}</p>
+            ) : null}
+            {!supabase ? (
+              <p className="text-xs text-muted">
+                Add Supabase env vars to enable upload.
+              </p>
+            ) : (
+              <p className="text-xs text-muted">
+                JPG, PNG, and WebP: crop and position in the editor, then we
+                compress for upload. GIFs stay animated (up to 15 MB) and skip
+                cropping.
+              </p>
+            )}
+          </div>
+        </div>
+        <label className="block space-y-2">
+          <span className="text-sm text-muted">
+            Or paste image URL
+            {profileType === "provider" ? (
+              <span className="font-normal text-muted">
+                {" "}
+                (optional if you uploaded a file)
+              </span>
+            ) : (
+              <span className="font-normal text-muted"> (optional)</span>
+            )}
+          </span>
+          <input
+            type="url"
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+        </label>
+      </div>
+
       {profileType === "provider" ? (
         <>
-          <div className="space-y-3">
+          <label className="block space-y-2">
             <span className="text-sm text-muted">
-              Profile photo (required for providers)
+              Profession
+              <RequiredMark />
             </span>
-            <div className="flex flex-wrap items-start gap-4">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-alt">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="px-2 text-center text-xs text-muted">
-                    No photo
-                  </span>
-                )}
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  disabled={uploadingAvatar || !supabase}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void handleAvatarFile(f);
-                  }}
-                  className="text-sm file:mr-3 file:rounded-md file:border-0 file:bg-accent-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-accent-hover"
-                />
-                {uploadingAvatar ? (
-                  <p className="text-xs text-muted">Uploading...</p>
-                ) : null}
-                {uploadError ? (
-                  <p className="text-xs text-danger">{uploadError}</p>
-                ) : null}
-                {!supabase ? (
-                  <p className="text-xs text-muted">
-                    Add Supabase env vars to enable upload.
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted">
-                    JPG, PNG, and WebP are compressed before upload. GIFs stay
-                    animated (up to 15 MB).
-                  </p>
-                )}
-              </div>
-            </div>
-            <label className="block space-y-2">
-              <span className="text-sm text-muted">
-                Or paste image URL (optional)
-              </span>
-              <input
-                type="url"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
+            <input
+              required
+              value={profession}
+              onChange={(e) => setProfession(e.target.value)}
+              placeholder="e.g. Physical Therapist, Occupational Therapist"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <span className="text-xs text-muted">
+              Shown on your public profile and in search results next to your
+              name.
+            </span>
+          </label>
 
           <label className="block space-y-2">
             <span className="text-sm text-muted">Credentials (optional)</span>
@@ -381,44 +544,41 @@ export function ProfileEditor({ userId, initial, lockProfileType = false }: Prop
             </div>
           </div>
         </>
-      ) : (
-        <p className="rounded-md border border-border bg-surface-alt p-3 text-sm text-muted">
-          Patient accounts do not require a profile photo.
-        </p>
-      )}
+      ) : null}
 
       <label className="block space-y-2">
-        <span className="text-sm text-muted">About you</span>
+        <span className="text-sm text-muted">
+          About you
+          {profileType === "provider" ? <RequiredMark /> : null}
+          {profileType === "patient" ? (
+            <span className="font-normal text-muted"> (optional)</span>
+          ) : null}
+        </span>
         <textarea
           rows={4}
-          required
+          required={profileType === "provider"}
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         />
       </label>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || uploadingAvatar}
           className="rounded-md bg-accent-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-60"
         >
-          {loading ? "Saving..." : "Save profile"}
+          {uploadingAvatar
+            ? "Uploading photo..."
+            : loading
+              ? "Saving..."
+              : "Save profile"}
         </button>
-        {profileLink ? (
-          <a
-            href={profileLink}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm text-accent-secondary hover:underline"
-          >
-            Open public link
-          </a>
-        ) : null}
       </div>
 
       {message ? <p className="text-sm text-muted">{message}</p> : null}
     </form>
+    </>
   );
 }

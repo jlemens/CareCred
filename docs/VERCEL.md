@@ -57,7 +57,8 @@ In **Supabase Dashboard** → **Authentication** → **URL configuration**:
 1. **Site URL:** your Vercel URL (or your future custom domain).
 2. **Redirect URLs:** add:
    - `https://YOUR-APP.vercel.app/**`
-   - `https://YOUR-APP.vercel.app/dashboard`
+   - `https://YOUR-APP.vercel.app/` (default after sign-in / email links)
+   - `https://YOUR-APP.vercel.app/dashboard` (settings / onboarding)
    - `http://localhost:3000/**` (optional, for local dev)
 
 This matters for **email confirmation links** and OAuth if you add it later.

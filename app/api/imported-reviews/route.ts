@@ -7,6 +7,7 @@ const schema = z.object({
   guestName: z.string().min(2).max(80),
   reviewText: z.string().min(5).max(2000),
   sourceUrl: z.string().url().optional().or(z.literal("")),
+  isPatientOuttake: z.boolean().optional().default(false),
   accepted: z.literal(true),
 });
 
@@ -45,6 +46,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const sourceLabel = parsed.data.isPatientOuttake
+    ? "From patient out-take form"
+    : "From Google Reviews";
+  const conditionSummary = parsed.data.isPatientOuttake
+    ? "Imported from patient out-take form"
+    : "Imported from public source";
+  const disclaimerText = parsed.data.isPatientOuttake
+    ? "Copied from a patient out-take form. Provider attested source accuracy and share permission."
+    : "Quoted or reproduced from Google Reviews. Provider attested source accuracy.";
+
   const { error } = await supabase.from("provider_reviews").insert({
     provider_profile_id: parsed.data.providerProfileId,
     author_user_id: user.id,
@@ -56,17 +67,15 @@ export async function POST(request: Request) {
     professionalism_rating: 5,
     felt_listened: true,
     body_region: "Imported",
-    condition_summary: "Imported from public source",
+    condition_summary: conditionSummary,
     rehab_story: null,
     standout_care: parsed.data.reviewText.trim(),
     source: "google_manual",
-    source_label: "From Google Reviews",
+    source_label: sourceLabel,
     source_url: parsed.data.sourceUrl?.trim() || null,
-    disclaimer_text:
-      "Quoted or reproduced from Google Reviews. Provider attested source accuracy.",
+    disclaimer_text: disclaimerText,
     attestation_accepted: true,
     is_visible: true,
-    is_pinned: false,
   });
 
   if (error) {

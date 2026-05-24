@@ -49,14 +49,24 @@ export default async function DashboardEditProfilePage() {
   }
 
   return (
-    <div className="grid w-full gap-6">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="w-full min-w-0 space-y-4">
+      {/*
+        Match ProfileEditor card inner padding (p-5 sm:p-6) so back link + title
+        line up with form fields on iOS (avoids “header vs box” misalignment).
+      */}
+      <div className="space-y-1 px-5 sm:px-6">
         <Link
           href="/dashboard"
-          className="text-sm text-muted transition hover:text-foreground"
+          className="inline-flex min-h-11 items-center text-sm text-muted transition hover:text-foreground"
         >
-          Back to account
+          ← Back to account
         </Link>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          Edit profile
+        </h1>
+        <p className="text-sm text-muted">
+          Name, credentials, and details shown on your public page.
+        </p>
       </div>
       <ProfileEditor
         key={profile.id}

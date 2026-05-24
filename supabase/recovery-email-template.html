@@ -1,0 +1,56 @@
+<!--
+  Paste into Supabase → Authentication → Email templates → "Reset password"
+  (Body / HTML).
+
+  Redirect URLs: add these (replace with your real domains):
+    http://localhost:3000/auth/reset-password
+    https://YOUR-VERCEL-APP.vercel.app/auth/reset-password
+    https://your-production-domain.com/auth/reset-password
+
+  Subject suggestion: Reset your CareCred password
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CareCred — Reset password</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#0a0d14;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0a0d14;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background-color:#121827;border:1px solid #2a344a;border-radius:12px;overflow:hidden;">
+            <tr>
+              <td style="padding:28px 24px 8px 24px;">
+                <p style="margin:0;font-size:20px;font-weight:700;color:#eaf0ff;">CareCred</p>
+                <p style="margin:8px 0 0 0;font-size:13px;line-height:1.55;color:#a7b3cc;">Reset your password using the button below. If you didn’t ask for this, you can ignore this email.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 24px 8px 24px;">
+                <p style="margin:0;font-size:14px;line-height:1.55;color:#eaf0ff;"><strong>What to do</strong></p>
+                <ol style="margin:10px 0 0 0;padding-left:1.25rem;font-size:13px;line-height:1.6;color:#a7b3cc;">
+                  <li style="margin-bottom:8px;">Click <strong style="color:#eaf0ff;">Continue to CareCred</strong> — we’ll open our site so you can choose a new password.</li>
+                  <li style="margin-bottom:8px;">Enter and confirm your new password on that page, then you’re done signing in with it.</li>
+                  <li>Later, you can change your password anytime: sign in → open <strong style="color:#eaf0ff;">Edit profile</strong> (from your account) → expand <strong style="color:#eaf0ff;">Password &amp; security</strong>.</li>
+                </ol>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 24px 28px 24px;" align="left">
+                <a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#6e7dff;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px;">Continue to CareCred</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 24px 24px;border-top:1px solid #2a344a;">
+                <p style="margin:16px 0 0 0;font-size:11px;line-height:1.5;color:#6b7280;word-break:break-all;">If the button doesn’t work, copy this link into your browser:<br /><a href="{{ .ConfirmationURL }}" style="color:#8090ff;">{{ .ConfirmationURL }}</a></p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:16px 0 0 0;font-size:11px;color:#5c6578;max-width:520px;">CareCred · <a href="{{ .SiteURL }}" style="color:#8090ff;text-decoration:none;">{{ .SiteURL }}</a></p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

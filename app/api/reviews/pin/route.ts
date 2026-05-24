@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { MAX_PINNED_TESTIMONIALS } from "@/lib/review-ratings";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
@@ -37,6 +38,15 @@ export async function PATCH(request: Request) {
     .single<{ id: string; provider_profile_id: string; is_pinned: boolean }>();
 
   if (reviewError || !review) {
+    if (reviewError?.message?.includes("is_pinned")) {
+      return NextResponse.json(
+        {
+          error:
+            "Database schema is outdated. Run supabase/schema.sql to add the is_pinned column, then retry.",
+        },
+        { status: 400 },
+      );
+    }
     return NextResponse.json({ error: "Review not found." }, { status: 404 });
   }
 
@@ -65,9 +75,11 @@ export async function PATCH(request: Request) {
     if (countError) {
       return NextResponse.json({ error: countError.message }, { status: 400 });
     }
-    if ((count ?? 0) >= 4) {
+    if ((count ?? 0) >= MAX_PINNED_TESTIMONIALS) {
       return NextResponse.json(
-        { error: "You can pin up to 4 testimonials." },
+        {
+          error: `You can pin up to ${MAX_PINNED_TESTIMONIALS} testimonials.`,
+        },
         { status: 400 },
       );
     }

@@ -38,7 +38,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AppHeader />
-        <main className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-6 pb-24 sm:px-6 sm:py-10 md:pb-10">
+        <main className="mx-auto flex min-w-0 w-full max-w-6xl flex-1 flex-col px-4 py-6 pb-24 sm:px-6 sm:py-10 sm:pb-24">
           {children}
         </main>
         <BottomNav />

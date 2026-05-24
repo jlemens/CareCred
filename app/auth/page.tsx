@@ -1,15 +1,27 @@
 import { AuthPanel } from "@/components/auth-panel";
 import { hasSupabaseEnv } from "@/lib/env";
 
-export default function AuthPage() {
+type Props = {
+  searchParams: Promise<{ signup?: string }>;
+};
+
+export default async function AuthPage({ searchParams }: Props) {
+  const { signup } = await searchParams;
+  const initialMode =
+    signup === "1" || signup === "true" ? "signup" : "signin";
+
   return (
     <div className="mx-auto grid w-full max-w-lg gap-6">
       <div className="text-center">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
           CareCred
         </h1>
-        <p className="mt-2 text-sm text-muted">
-          Sign in or create an account to continue.
+        <p className="mt-4 bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-base font-semibold leading-snug text-transparent sm:text-lg">
+          Patient–provider testimonials, made easy.
+        </p>
+        <p className="mt-3 text-sm text-muted">
+          Join for free to set up your profile and collect testimonials — or
+          sign in if you already have an account.
         </p>
       </div>
 
@@ -20,7 +32,7 @@ export default function AuthPage() {
         </div>
       ) : null}
 
-      <AuthPanel />
+      <AuthPanel initialMode={initialMode} />
     </div>
   );
 }
