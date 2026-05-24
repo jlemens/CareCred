@@ -1,23 +1,73 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  readAuthExchangeParams,
+  resolveAuthExchangeRedirect,
+  stripAuthExchangeParams,
+} from "@/lib/auth-exchange";
+import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 
 /**
- * Refresh the Supabase auth session on every navigation so server components
- * always see a valid (non-expired) JWT. Without this, opening the app after
- * the token expires (e.g. from an iPhone home-screen shortcut) renders a blank
- * page until a client-side refresh happens.
+ * Refresh Supabase sessions and exchange email-link codes (signup, recovery, etc.)
+ * before route handlers / pages run.
  */
 export async function middleware(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.next();
+  }
+
+  const { code, tokenHash, type } = readAuthExchangeParams(request.nextUrl.searchParams);
+
+  if (code || (tokenHash && type)) {
+    const nextPath = resolveAuthExchangeRedirect(
+      request.nextUrl.pathname,
+      request.nextUrl.searchParams,
+    );
+    const redirectTarget = stripAuthExchangeParams(request.nextUrl);
+    redirectTarget.pathname = nextPath;
+
+    let response = NextResponse.redirect(redirectTarget);
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    });
+
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error) {
+        return response;
+      }
+    } else if (tokenHash && type) {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type,
+      });
+      if (!error) {
+        return response;
+      }
+    }
+
+    const errorTarget = stripAuthExchangeParams(request.nextUrl);
+    errorTarget.pathname = PASSWORD_RESET_PATH;
+    errorTarget.searchParams.set("error", "invalid_link");
+    return NextResponse.redirect(errorTarget);
   }
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -41,10 +91,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Run on all routes except static assets and Next.js internals.
-     * _next/static, _next/image, favicon.ico, and common image extensions.
-     */
     "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

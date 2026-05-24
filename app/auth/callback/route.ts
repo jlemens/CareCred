@@ -1,15 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import type { EmailOtpType } from "@supabase/supabase-js";
-import { PASSWORD_RESET_PATH, safeAuthNextPath } from "@/lib/password-reset";
+import {
+  readAuthExchangeParams,
+  resolveAuthExchangeRedirect,
+  stripAuthExchangeParams,
+} from "@/lib/auth-exchange";
+import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
-  const tokenHash = requestUrl.searchParams.get("token_hash");
-  const type = requestUrl.searchParams.get("type") as EmailOtpType | null;
-  const next = safeAuthNextPath(requestUrl.searchParams.get("next"));
+  const { code, tokenHash, type } = readAuthExchangeParams(requestUrl.searchParams);
+  const nextPath = resolveAuthExchangeRedirect(
+    requestUrl.pathname,
+    requestUrl.searchParams,
+  );
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -20,15 +24,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const cookieStore = await cookies();
+  const redirectTarget = stripAuthExchangeParams(requestUrl);
+  redirectTarget.pathname = nextPath;
+  let response = NextResponse.redirect(redirectTarget);
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return cookieStore.getAll();
+        return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
+          response.cookies.set(name, value, options);
         });
       },
     },
@@ -37,7 +44,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(new URL(next, requestUrl.origin));
+      return response;
     }
   }
 
@@ -47,7 +54,7 @@ export async function GET(request: NextRequest) {
       type,
     });
     if (!error) {
-      return NextResponse.redirect(new URL(next, requestUrl.origin));
+      return response;
     }
   }
 
