@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ReviewEngagement } from "@/components/review-engagement";
 import { StarRatingDisplay } from "@/components/star-rating-display";
 import type { ProviderReview } from "@/lib/types";
@@ -42,6 +42,109 @@ function formatReviewPostedAt(createdAt: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(postedAt);
+}
+
+function OwnerReviewMenu({
+  ownerCanHide,
+  ownerCanPin,
+  optimisticVisible,
+  optimisticPinned,
+  canPinMore,
+  isPending,
+  onToggleVisibility,
+  onTogglePin,
+}: {
+  ownerCanHide: boolean;
+  ownerCanPin: boolean;
+  optimisticVisible: boolean;
+  optimisticPinned: boolean;
+  canPinMore: boolean;
+  isPending: boolean;
+  onToggleVisibility: () => void;
+  onTogglePin: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const hasMenuItems =
+    ownerCanHide || (ownerCanPin && (optimisticPinned || canPinMore));
+
+  if (!hasMenuItems) return null;
+
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Testimonial options"
+        disabled={isPending}
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-surface-alt px-2 text-lg leading-none text-muted transition hover:bg-background hover:text-foreground disabled:opacity-50"
+      >
+        <span aria-hidden>⋯</span>
+      </button>
+
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 min-w-[11rem] overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg shadow-black/30"
+        >
+          {ownerCanHide ? (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isPending}
+              onClick={() => {
+                setOpen(false);
+                onToggleVisibility();
+              }}
+              className="flex w-full px-3 py-2.5 text-left text-sm transition hover:bg-surface-alt disabled:opacity-50"
+            >
+              {optimisticVisible ? "Hide review" : "Unhide review"}
+            </button>
+          ) : null}
+          {ownerCanPin ? (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isPending || (!optimisticPinned && !canPinMore)}
+              onClick={() => {
+                setOpen(false);
+                onTogglePin();
+              }}
+              className="flex w-full px-3 py-2.5 text-left text-sm transition hover:bg-surface-alt disabled:opacity-50"
+            >
+              {optimisticPinned ? "Unpin review" : "Pin review"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function ExpandableReviewCard({
@@ -113,6 +216,53 @@ export function ExpandableReviewCard({
   ]
     .filter(Boolean)
     .join(" ");
+
+  function toggleVisibility() {
+    setActionError(null);
+    const newVisible = !optimisticVisible;
+    setOptimisticVisible(newVisible);
+    if (!newVisible) setOptimisticPinned(false);
+    startTransition(async () => {
+      const response = await fetch("/api/reviews/visibility", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewId: review.id,
+          hidden: optimisticVisible,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setOptimisticVisible(!newVisible);
+        setActionError(payload.error ?? "Unable to update visibility.");
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function togglePin() {
+    setActionError(null);
+    const newPinned = !optimisticPinned;
+    setOptimisticPinned(newPinned);
+    startTransition(async () => {
+      const response = await fetch("/api/reviews/pin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reviewId: review.id,
+          pinned: newPinned,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setOptimisticPinned(!newPinned);
+        setActionError(payload.error ?? "Unable to update pin.");
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   return (
     <Root id={anchorId} className={rootClass}>
@@ -233,91 +383,35 @@ export function ExpandableReviewCard({
         <p className="mt-1 text-xs text-muted">{review.disclaimer_text}</p>
       ) : null}
 
-      {showOwnerActions ? (
-        <div className="mt-3 border-t border-border pt-3">
-          <div className="flex w-full items-center justify-between gap-2">
-            <div className="flex min-w-0 flex-1 justify-start">
-              {ownerCanHide ? (
-                <button
-                  type="button"
-                  disabled={isPending}
-                  className="min-h-10 rounded-md border border-border bg-surface-alt px-3 py-2 text-xs font-medium transition hover:bg-background disabled:opacity-50"
-                  onClick={() => {
-                    setActionError(null);
-                    const newVisible = !optimisticVisible;
-                    setOptimisticVisible(newVisible);
-                    if (!newVisible) setOptimisticPinned(false);
-                    startTransition(async () => {
-                      const response = await fetch("/api/reviews/visibility", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          reviewId: review.id,
-                          hidden: optimisticVisible,
-                        }),
-                      });
-                      const payload = (await response.json()) as { error?: string };
-                      if (!response.ok) {
-                        setOptimisticVisible(!newVisible);
-                        setActionError(payload.error ?? "Unable to update visibility.");
-                        return;
-                      }
-                      router.refresh();
-                    });
-                  }}
-                >
-                  {optimisticVisible ? "Hide review" : "Unhide review"}
-                </button>
-              ) : null}
-            </div>
-            <div className="flex shrink-0 justify-end">
-              {ownerCanPin ? (
-                <button
-                  type="button"
-                  disabled={isPending || (!optimisticPinned && !canPinMore)}
-                  className="min-h-10 rounded-md border border-border bg-surface-alt px-3 py-2 text-xs font-medium transition hover:bg-background disabled:opacity-50"
-                  onClick={() => {
-                    setActionError(null);
-                    const newPinned = !optimisticPinned;
-                    setOptimisticPinned(newPinned);
-                    startTransition(async () => {
-                      const response = await fetch("/api/reviews/pin", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          reviewId: review.id,
-                          pinned: newPinned,
-                        }),
-                      });
-                      const payload = (await response.json()) as { error?: string };
-                      if (!response.ok) {
-                        setOptimisticPinned(!newPinned);
-                        setActionError(payload.error ?? "Unable to update pin.");
-                        return;
-                      }
-                      router.refresh();
-                    });
-                  }}
-                >
-                  {optimisticPinned ? "Unpin review" : "Pin review"}
-                </button>
-              ) : null}
-            </div>
+      {needsExpand || showOwnerActions ? (
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            {needsExpand ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((e) => !e)}
+                className="min-h-11 text-left text-sm font-medium text-accent-secondary hover:underline"
+              >
+                {expanded ? "Show less" : "Read more"}
+              </button>
+            ) : null}
           </div>
+          {showOwnerActions ? (
+            <OwnerReviewMenu
+              ownerCanHide={ownerCanHide}
+              ownerCanPin={ownerCanPin}
+              optimisticVisible={optimisticVisible}
+              optimisticPinned={optimisticPinned}
+              canPinMore={canPinMore}
+              isPending={isPending}
+              onToggleVisibility={toggleVisibility}
+              onTogglePin={togglePin}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {actionError ? <p className="mt-2 text-xs text-danger">{actionError}</p> : null}
-
-      {needsExpand ? (
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          className="mt-3 min-h-11 text-left text-sm font-medium text-accent-secondary hover:underline"
-        >
-          {expanded ? "Show less" : "Read more"}
-        </button>
-      ) : null}
 
       {showEngagement ? (
         <ReviewEngagement

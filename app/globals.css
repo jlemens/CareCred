@@ -52,6 +52,29 @@ a {
   border-radius: 0.875rem;
 }
 
+.review-comment {
+  border: 1px solid color-mix(in srgb, var(--accent-secondary) 28%, var(--border));
+  border-left: 3px solid color-mix(in srgb, var(--accent-secondary) 70%, transparent);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--accent-primary) 12%, var(--surface-alt)),
+    color-mix(in srgb, var(--background) 88%, var(--surface))
+  );
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.review-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.625rem;
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  background: color-mix(in srgb, var(--background) 55%, var(--surface));
+}
+
 /* iOS form UX: prevent auto-zoom by keeping 16px inputs. */
 input,
 select,
