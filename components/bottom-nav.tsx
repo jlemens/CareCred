@@ -86,11 +86,6 @@ export function BottomNav() {
             🔍
           </span>
         </NavButton>
-        <NavButton href={settingsHref} label="Settings" active={isSettingsActive}>
-          <span aria-hidden className="text-lg">
-            ⚙️
-          </span>
-        </NavButton>
         <NavButton
           href={notificationsHref}
           label="Alerts"
@@ -99,6 +94,11 @@ export function BottomNav() {
         >
           <span aria-hidden className="text-lg">
             🔔
+          </span>
+        </NavButton>
+        <NavButton href={settingsHref} label="Settings" active={isSettingsActive}>
+          <span aria-hidden className="text-lg">
+            ⚙️
           </span>
         </NavButton>
       </div>
