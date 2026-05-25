@@ -5,6 +5,7 @@ import { GivenTestimonialsCollapsible } from "@/components/given-testimonials-co
 import { ImportedReviewForm } from "@/components/imported-review-form";
 import { ProfileShareLink } from "@/components/profile-share-link";
 import { ProviderQrDownloadButton } from "@/components/provider-qr-download";
+import { SurveyCenterCollapsible } from "@/components/survey-center-collapsible";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 import {
   getGivenReviewsWithProviderSummaries,
@@ -143,6 +144,15 @@ export default async function DashboardPage() {
           variant="settings-page"
         />
       </section>
+
+      {profile.profile_type === "provider" ? (
+        <section className="card p-6">
+          <SurveyCenterCollapsible
+            initialConfig={profile.survey_config}
+            profession={profile.profession}
+          />
+        </section>
+      ) : null}
 
       {profile.profile_type === "provider" ? (
         <ImportedReviewForm providerProfileId={profile.id} />

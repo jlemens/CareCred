@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AddTestimonialPanel } from "@/components/add-testimonial-panel";
 import { ExpandableProfileText } from "@/components/expandable-profile-text";
 import { ExpandableReviewCard } from "@/components/expandable-review-card";
+import { ProfilePhoto } from "@/components/profile-photo";
 import { ProfileShareLink } from "@/components/profile-share-link";
 import { ReviewRatingSummary } from "@/components/review-rating-summary";
 import { parseSurveyConfig, resolveEnabledSurveys } from "@/lib/surveys/config";
@@ -107,16 +108,18 @@ export default async function PublicProfilePage({ params }: Props) {
   return (
     <div className="grid w-full gap-6">
       <section className="card p-6">
+        {profile.avatar_url && profile.profile_type === "provider" ? (
+          <ProfilePhoto src={profile.avatar_url} variant="hero" className="mb-5" />
+        ) : null}
         <div className="flex flex-wrap items-start gap-4">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+          {profile.avatar_url && profile.profile_type === "patient" ? (
+            <ProfilePhoto
               src={profile.avatar_url}
-              alt=""
-              className="h-24 w-24 shrink-0 rounded-xl border border-border object-cover"
+              variant="preview"
+              className="max-w-[6rem]"
             />
           ) : null}
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold tracking-tight">
               {profile.display_name}
             </h1>

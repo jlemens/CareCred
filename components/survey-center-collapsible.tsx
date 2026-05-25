@@ -17,9 +17,15 @@ import {
 type Props = {
   initialConfig: unknown;
   profession: string | null;
+  /** `settings-page` = dashboard Settings card; default matches other collapsibles there. */
+  variant?: "settings-page";
 };
 
-export function SurveyCenterCollapsible({ initialConfig, profession }: Props) {
+export function SurveyCenterCollapsible({
+  initialConfig,
+  profession,
+  variant = "settings-page",
+}: Props) {
   const parsedInitial = useMemo(
     () => parseSurveyConfig(initialConfig),
     [initialConfig],
@@ -101,7 +107,7 @@ export function SurveyCenterCollapsible({ initialConfig, profession }: Props) {
     config.enabledTemplateIds.length + (config.custom.enabled ? 1 : 0);
 
   return (
-    <details className="card p-5 sm:p-6">
+    <details className={variant === "settings-page" ? undefined : "card p-5 sm:p-6"}>
       <summary className="cursor-pointer text-sm font-medium text-foreground">
         Survey center: customize user testimonials
       </summary>

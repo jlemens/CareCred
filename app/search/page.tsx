@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ProfilePhoto } from "@/components/profile-photo";
 import { searchProviders } from "@/lib/queries";
 
 type Props = {
@@ -50,12 +51,7 @@ export default async function SearchPage({ searchParams }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 flex-1 items-start gap-4">
                 {provider.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={provider.avatar_url}
-                    alt=""
-                    className="h-16 w-16 shrink-0 rounded-xl border border-border object-cover"
-                  />
+                  <ProfilePhoto src={provider.avatar_url} variant="thumbnail" />
                 ) : (
                   <div
                     className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-alt text-lg font-semibold text-muted"

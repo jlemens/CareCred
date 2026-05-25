@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ProfileEditor } from "@/components/profile-editor";
-import { SurveyCenterCollapsible } from "@/components/survey-center-collapsible";
 import { getProfileByUserId, getSessionUser } from "@/lib/queries";
 import { hasSupabaseEnv } from "@/lib/env";
 
@@ -77,12 +76,6 @@ export default async function DashboardEditProfilePage() {
           email: user.email ?? "",
         }}
       />
-      {profile.profile_type === "provider" ? (
-        <SurveyCenterCollapsible
-          initialConfig={profile.survey_config}
-          profession={profile.profession}
-        />
-      ) : null}
     </div>
   );
 }
