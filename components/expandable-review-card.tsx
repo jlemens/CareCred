@@ -105,7 +105,7 @@ function OwnerReviewMenu({
         aria-label="Testimonial options"
         disabled={isPending}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-background px-2 text-lg leading-none text-muted transition hover:bg-surface hover:text-foreground disabled:opacity-50"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-lg font-medium leading-none text-accent-secondary transition hover:underline disabled:opacity-50"
       >
         <span aria-hidden>⋯</span>
       </button>

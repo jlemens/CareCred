@@ -177,10 +177,8 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
           type="button"
           disabled={!signedIn || isPending}
           onClick={toggleLike}
-          className={`inline-flex min-h-10 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium transition disabled:opacity-50 ${
-            engagement.likedByMe
-              ? "border-accent-secondary/60 bg-accent-secondary/15 text-accent-secondary"
-              : "border-border bg-background hover:bg-surface"
+          className={`inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-accent-secondary transition hover:underline disabled:opacity-50 ${
+            engagement.likedByMe ? "font-semibold" : ""
           }`}
           aria-pressed={engagement.likedByMe}
         >
@@ -198,7 +196,7 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
               return !open;
             });
           }}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-xs font-medium transition hover:bg-surface"
+          className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-accent-secondary transition hover:underline"
         >
           <span aria-hidden>💬</span>
           <span>
