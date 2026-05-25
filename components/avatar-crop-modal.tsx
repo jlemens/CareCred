@@ -68,19 +68,18 @@ export function AvatarCropModal({ imageSrc, onCancel, onApply }: Props) {
             Position your photo
           </h2>
           <p className="mt-1 text-xs text-muted">
-            Drag to frame your photo. Pinch or use the slider to zoom. Banner-style
-            images with text at the bottom stay fully visible while you crop.
+            Drag to frame your face. Pinch or use the slider to zoom. Output is
+            square, like your profile picture.
           </p>
         </div>
 
-        <div className="relative min-h-[320px] w-full flex-1 overflow-hidden bg-[#0a0d14] sm:min-h-[380px]">
+        <div className="relative min-h-[220px] w-full flex-1 bg-[#0a0d14] sm:min-h-[280px]">
           <Cropper
             image={imageSrc}
             crop={crop}
             zoom={zoom}
             aspect={1}
             cropShape="round"
-            objectFit="contain"
             showGrid={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}

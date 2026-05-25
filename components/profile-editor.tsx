@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import type { Profile, ProfileType } from "@/lib/types";
 import { AccountPasswordCollapsible } from "@/components/account-password-collapsible";
 import { AvatarCropModal } from "@/components/avatar-crop-modal";
-import { ProfilePhoto } from "@/components/profile-photo";
 import { prepareAvatarForUpload } from "@/lib/image-compress";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { namesFromProfile } from "@/lib/profile-names";
@@ -385,13 +384,18 @@ export function ProfileEditor({
           ) : null}
         </span>
         <div className="flex flex-wrap items-start gap-4">
-          {avatarUrl ? (
-            <ProfilePhoto src={avatarUrl} variant="preview" />
-          ) : (
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-alt">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-alt">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
               <span className="px-2 text-center text-xs text-muted">No photo</span>
-            </div>
-          )}
+            )}
+          </div>
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <input
               ref={fileInputRef}
