@@ -33,7 +33,7 @@ function reviewAudienceBadge(review: ProviderReview) {
   return {
     label: "Guest review",
     className:
-      "rounded-md border border-border bg-surface-alt px-2 py-1 text-[11px] font-medium text-muted",
+      "rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted",
   };
 }
 
@@ -105,7 +105,7 @@ function OwnerReviewMenu({
         aria-label="Testimonial options"
         disabled={isPending}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-surface-alt px-2 text-lg leading-none text-muted transition hover:bg-background hover:text-foreground disabled:opacity-50"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-background px-2 text-lg leading-none text-muted transition hover:bg-surface hover:text-foreground disabled:opacity-50"
       >
         <span aria-hidden>⋯</span>
       </button>
@@ -210,7 +210,7 @@ export function ExpandableReviewCard({
   const Root: "li" | "div" = asListItem ? "li" : "div";
 
   const rootClass = [
-    "rounded-md border border-border p-4",
+    "rounded-md border border-border bg-surface-alt p-4",
     anchorId ? "scroll-mt-24" : "",
     className,
   ]
@@ -303,7 +303,7 @@ export function ExpandableReviewCard({
             <p className="text-xs uppercase tracking-wide text-muted">{surveyLabel}</p>
           ) : null}
           {optimisticPinned ? (
-            <span className="rounded-md border border-border bg-surface-alt px-2 py-1 text-[11px] font-medium text-muted">
+            <span className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-muted">
               Pinned
             </span>
           ) : null}
