@@ -69,13 +69,13 @@ export default async function DashboardPage() {
       <section className="card p-6">
         <details>
           <summary className="cursor-pointer text-base font-semibold text-accent-secondary">
-            Need help? Reach out to Jake
+            Questions or feedback? Contact Jake
           </summary>
           <div className="mt-3 space-y-4">
             <p className="text-sm text-muted">
               Hey, I&apos;m Jake — a licensed physical therapist and the creator of
-              CareCred. I&apos;m here to help, so don&apos;t hesitate to reach out
-              with questions, feedback, or anything at all.
+              CareCred. I&apos;d love to hear from you: feedback, feature ideas, or
+              anything on your mind.
             </p>
             <p className="text-sm">
               <span className="text-muted">Email </span>
