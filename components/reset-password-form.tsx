@@ -8,6 +8,11 @@ import {
   readAuthExchangeParams,
   readSupabaseAuthError,
 } from "@/lib/auth-exchange";
+import {
+  isPasswordTooShort,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_TOO_SHORT_MESSAGE,
+} from "@/lib/password-rules";
 import { PASSWORD_RESET_PATH } from "@/lib/password-reset";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -137,8 +142,8 @@ export function ResetPasswordForm() {
       setMessage("Supabase is not configured.");
       return;
     }
-    if (password.length < 8) {
-      setMessage("Use at least 8 characters.");
+    if (isPasswordTooShort(password)) {
+      setMessage(PASSWORD_TOO_SHORT_MESSAGE);
       return;
     }
     if (password !== confirm) {
@@ -199,19 +204,20 @@ export function ResetPasswordForm() {
         <input
           type="password"
           required
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-accent-primary focus:ring-2"
         />
+        <p className="text-xs text-muted">{PASSWORD_TOO_SHORT_MESSAGE}</p>
       </label>
       <label className="block space-y-2">
         <span className="text-sm text-muted">Confirm new password</span>
         <input
           type="password"
           required
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}

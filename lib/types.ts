@@ -20,6 +20,7 @@ export type Profile = {
   years_experience: number | null;
   avatar_url: string | null;
   active_survey_template: string | null;
+  survey_config: unknown;
   is_complete: boolean;
   /** How many times the public slug has been changed after creation (max 1 allowed). */
   slug_change_count?: number;
@@ -50,6 +51,8 @@ export type ProviderReview = {
   attestation_accepted: boolean | null;
   is_visible: boolean;
   is_pinned?: boolean | null;
+  survey_template_id: string | null;
+  survey_responses: Record<string, string | number | boolean> | null;
   created_at: string;
 };
 

@@ -18,6 +18,7 @@ create table if not exists public.profiles (
   years_experience integer,
   avatar_url text,
   active_survey_template text,
+  survey_config jsonb,
   home_state text,
   is_complete boolean not null default false,
   slug_change_count integer not null default 0,
@@ -48,6 +49,8 @@ create table if not exists public.provider_reviews (
   attestation_accepted boolean,
   is_visible boolean not null default true,
   is_pinned boolean not null default false,
+  survey_template_id text,
+  survey_responses jsonb,
   created_at timestamptz not null default now()
 );
 
@@ -69,6 +72,9 @@ alter table public.provider_reviews alter column body_region drop not null;
 alter table public.provider_reviews alter column condition_summary drop not null;
 
 alter table public.provider_reviews add column if not exists reviewer_state text;
+alter table public.profiles add column if not exists survey_config jsonb;
+alter table public.provider_reviews add column if not exists survey_template_id text;
+alter table public.provider_reviews add column if not exists survey_responses jsonb;
 
 create index if not exists idx_reviews_provider on public.provider_reviews(provider_profile_id, created_at desc);
 create index if not exists idx_reviews_author on public.provider_reviews(author_user_id, created_at desc);

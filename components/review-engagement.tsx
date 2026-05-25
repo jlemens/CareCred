@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import type { ReviewComment, ReviewEngagementSummary } from "@/lib/types";
 
+/** Default number of comments shown before expanding the thread. */
+const COMMENTS_PREVIEW_COUNT = 3;
+
+/** Max scroll height when viewing the full thread (roughly ~3–4 comments). */
+const COMMENTS_EXPANDED_MAX_HEIGHT = "17.5rem";
+
 function formatWhen(createdAt: string) {
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return "";
@@ -30,6 +36,7 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
   const [commentBody, setCommentBody] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const loadEngagement = useCallback(async () => {
@@ -126,6 +133,7 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
       }
       setCommentBody("");
       setShowComments(true);
+      setShowAllComments(true);
       window.dispatchEvent(new CustomEvent("carecred:notifications-changed"));
     });
   }
@@ -184,7 +192,12 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
 
         <button
           type="button"
-          onClick={() => setShowComments((open) => !open)}
+          onClick={() => {
+            setShowComments((open) => {
+              if (open) setShowAllComments(false);
+              return !open;
+            });
+          }}
           className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-border bg-surface-alt px-3 py-2 text-xs font-medium transition hover:bg-background"
         >
           <span aria-hidden>💬</span>
@@ -209,41 +222,73 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
           {engagement.comments.length === 0 ? (
             <p className="text-xs text-muted">No comments yet. Start the conversation.</p>
           ) : (
-            <ul className="review-comments-list">
-              {engagement.comments.map((comment) => (
-                <li key={comment.id} className="review-comment">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      {comment.author_slug ? (
-                        <Link
-                          href={`/u/${comment.author_slug}`}
-                          className="text-sm font-medium text-accent-secondary hover:underline"
-                        >
-                          {comment.author_display_name ?? "Member"}
-                        </Link>
-                      ) : (
-                        <p className="text-sm font-medium">
-                          {comment.author_display_name ?? "Member"}
+            <>
+              {engagement.comments.length > COMMENTS_PREVIEW_COUNT && !showAllComments ? (
+                <p className="text-xs text-muted">
+                  Showing the {COMMENTS_PREVIEW_COUNT} most recent comments.
+                </p>
+              ) : null}
+              <ul
+                className={`review-comments-list ${
+                  showAllComments && engagement.comments.length > COMMENTS_PREVIEW_COUNT
+                    ? "overflow-y-auto"
+                    : ""
+                }`}
+                style={
+                  showAllComments && engagement.comments.length > COMMENTS_PREVIEW_COUNT
+                    ? { maxHeight: COMMENTS_EXPANDED_MAX_HEIGHT }
+                    : undefined
+                }
+              >
+                {(showAllComments
+                  ? engagement.comments
+                  : engagement.comments.slice(-COMMENTS_PREVIEW_COUNT)
+                ).map((comment) => (
+                  <li key={comment.id} className="review-comment">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        {comment.author_slug ? (
+                          <Link
+                            href={`/u/${comment.author_slug}`}
+                            className="text-sm font-medium text-accent-secondary hover:underline"
+                          >
+                            {comment.author_display_name ?? "Member"}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-medium">
+                            {comment.author_display_name ?? "Member"}
+                          </p>
+                        )}
+                        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
+                          {comment.body}
                         </p>
-                      )}
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-                        {comment.body}
-                      </p>
-                      <p className="mt-1 text-[11px] text-muted">
-                        {formatWhen(comment.created_at)}
-                      </p>
+                        <p className="mt-1 text-[11px] text-muted">
+                          {formatWhen(comment.created_at)}
+                        </p>
+                      </div>
+                      {signedIn && comment.author_user_id === currentUserId ? (
+                        <DeleteCommentButton
+                          commentId={comment.id}
+                          onDelete={() => deleteComment(comment.id)}
+                          disabled={isPending}
+                        />
+                      ) : null}
                     </div>
-                    {signedIn && comment.author_user_id === currentUserId ? (
-                      <DeleteCommentButton
-                        commentId={comment.id}
-                        onDelete={() => deleteComment(comment.id)}
-                        disabled={isPending}
-                      />
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+              {engagement.comments.length > COMMENTS_PREVIEW_COUNT ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllComments((expanded) => !expanded)}
+                  className="min-h-10 text-left text-sm font-medium text-accent-secondary hover:underline"
+                >
+                  {showAllComments
+                    ? "Show fewer comments"
+                    : `View all ${engagement.comments.length} comments`}
+                </button>
+              ) : null}
+            </>
           )}
 
           {signedIn ? (

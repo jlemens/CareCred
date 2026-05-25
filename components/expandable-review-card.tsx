@@ -10,13 +10,15 @@ import {
   effectiveOverallRating,
   MAX_PINNED_TESTIMONIALS,
 } from "@/lib/review-ratings";
+import {
+  reviewDetailRows,
+  surveyLabelForReview,
+  writtenFeedbackFromReview,
+} from "@/lib/surveys/display";
 import { reviewerStateLabel } from "@/lib/us-states";
 
-function combinedNarrative(review: ProviderReview) {
-  const parts = [review.standout_care, review.rehab_story].filter(
-    (s): s is string => Boolean(s?.trim()),
-  );
-  return parts.join("\n\n").trim();
+function combinedNarrative(review: Parameters<typeof writtenFeedbackFromReview>[0]) {
+  return writtenFeedbackFromReview(review);
 }
 
 function reviewAudienceBadge(review: ProviderReview) {
@@ -198,14 +200,12 @@ export function ExpandableReviewCard({
     optimisticPinned || pinnedCount < MAX_PINNED_TESTIMONIALS;
   const audienceBadge = reviewAudienceBadge(review);
   const showOwnerActions = ownerCanPin || ownerCanHide;
-  const surveyLabel =
-    review.source === "google_manual"
-      ? review.source_label ?? "From Google Reviews"
-      : "Standard review";
+  const surveyLabel = surveyLabelForReview(review);
+  const detailRows = reviewDetailRows(review);
 
   const needsExpand =
     Boolean(narrative.trim()) &&
-    narrative.length > (isPt && overall != null ? 120 : 180);
+    (detailRows.length > 0 || narrative.length > (isPt && overall != null ? 120 : 180));
 
   const Root: "li" | "div" = asListItem ? "li" : "div";
 
@@ -341,24 +341,16 @@ export function ExpandableReviewCard({
         <p className="mt-2 text-sm text-muted">No written feedback.</p>
       )}
 
-      {expanded && isPt && (review.body_region || review.condition_summary) ? (
+      {expanded && isPt && detailRows.length > 0 ? (
         <dl className="mt-3 grid gap-2 border-t border-border pt-3 text-sm">
-          {review.body_region ? (
-            <div>
+          {detailRows.map((row) => (
+            <div key={row.label}>
               <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                Body region
+                {row.label}
               </dt>
-              <dd className="mt-0.5 text-foreground">{review.body_region}</dd>
+              <dd className="mt-0.5 text-foreground">{row.value}</dd>
             </div>
-          ) : null}
-          {review.condition_summary ? (
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                Condition / recovery
-              </dt>
-              <dd className="mt-0.5 text-foreground">{review.condition_summary}</dd>
-            </div>
-          ) : null}
+          ))}
         </dl>
       ) : null}
 

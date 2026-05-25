@@ -2,6 +2,11 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import {
+  isPasswordTooShort,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_TOO_SHORT_MESSAGE,
+} from "@/lib/password-rules";
 import { getPasswordResetRedirectTo } from "@/lib/password-reset";
 
 type Props = {
@@ -70,8 +75,8 @@ export function AccountPasswordCollapsible({
       setChangeMsg("Supabase is not configured.");
       return;
     }
-    if (newPassword.length < 8) {
-      setChangeMsg("Use at least 8 characters.");
+    if (isPasswordTooShort(newPassword)) {
+      setChangeMsg(PASSWORD_TOO_SHORT_MESSAGE);
       return;
     }
     if (newPassword !== confirmNew) {
@@ -134,18 +139,21 @@ export function AccountPasswordCollapsible({
               <span className="text-xs text-muted">New password</span>
               <input
                 type="password"
-                minLength={8}
+                required
+                minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
+              <p className="text-xs text-muted">{PASSWORD_TOO_SHORT_MESSAGE}</p>
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-muted">Confirm new password</span>
               <input
                 type="password"
-                minLength={8}
+                required
+                minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 value={confirmNew}
                 onChange={(e) => setConfirmNew(e.target.value)}

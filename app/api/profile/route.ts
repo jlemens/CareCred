@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { parseSurveyConfig } from "@/lib/surveys/config";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { REVIEWER_STATE_ENUM } from "@/lib/us-states";
 
@@ -54,9 +55,9 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from("profiles")
-    .select("slug, slug_change_count")
+    .select("slug, slug_change_count, survey_config")
     .eq("user_id", user.id)
-    .maybeSingle<{ slug: string; slug_change_count: number | null }>();
+    .maybeSingle<{ slug: string; slug_change_count: number | null; survey_config: unknown }>();
 
   if (existing && existing.slug !== newSlug) {
     return NextResponse.json(
@@ -161,7 +162,14 @@ export async function POST(request: Request) {
     years_experience: data.profileType === "provider" && Number.isFinite(years) ? years : null,
     location: data.location?.trim() || null,
     bio: bioTrimmed,
-    active_survey_template: data.profileType === "provider" ? "pt" : null,
+    active_survey_template:
+      data.profileType === "provider"
+        ? parseSurveyConfig(existing?.survey_config).enabledTemplateIds[0] ?? "pt_standard"
+        : null,
+    survey_config:
+      data.profileType === "provider"
+        ? existing?.survey_config ?? { enabledTemplateIds: ["pt_standard"], custom: { enabled: false, questionIds: [] } }
+        : null,
     is_complete:
       data.profileType === "provider" ? providerRequiredReady : patientRequiredReady,
   };

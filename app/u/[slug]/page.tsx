@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { AddTestimonialPanel } from "@/components/add-testimonial-panel";
 import { ExpandableProfileText } from "@/components/expandable-profile-text";
 import { ExpandableReviewCard } from "@/components/expandable-review-card";
-import { AddTestimonialPanel } from "@/components/add-testimonial-panel";
 import { ProfileShareLink } from "@/components/profile-share-link";
 import { ReviewRatingSummary } from "@/components/review-rating-summary";
+import { parseSurveyConfig, resolveEnabledSurveys } from "@/lib/surveys/config";
 import {
   computePtSurveyStarStats,
   MAX_PINNED_TESTIMONIALS,
@@ -50,6 +51,10 @@ export default async function PublicProfilePage({ params }: Props) {
       : [];
   const isOwnProviderPage =
     profile.profile_type === "provider" && sessionUser?.id === profile.user_id;
+  const enabledSurveys =
+    profile.profile_type === "provider"
+      ? resolveEnabledSurveys(parseSurveyConfig(profile.survey_config))
+      : [];
   const surveyStarStats =
     profile.profile_type === "provider"
       ? computePtSurveyStarStats(reviews)
@@ -240,6 +245,7 @@ export default async function PublicProfilePage({ params }: Props) {
             <AddTestimonialPanel
               providerProfileId={profile.id}
               providerSlug={profile.slug}
+              enabledSurveys={enabledSurveys}
               disabled={isOwnProviderPage}
               disabledMessage="Providers cannot submit standard reviews for their own profile."
             />

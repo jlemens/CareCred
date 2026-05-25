@@ -2,6 +2,11 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import {
+  isPasswordTooShort,
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_TOO_SHORT_MESSAGE,
+} from "@/lib/password-rules";
 import { getPasswordResetRedirectTo } from "@/lib/password-reset";
 
 type Mode = "signin" | "signup";
@@ -45,6 +50,12 @@ export function AuthPanel({ initialMode = "signin" }: AuthPanelProps) {
         return;
       }
       window.location.href = "/";
+      return;
+    }
+
+    if (mode === "signup" && isPasswordTooShort(password)) {
+      setMessage(PASSWORD_TOO_SHORT_MESSAGE);
+      setLoading(false);
       return;
     }
 
@@ -233,11 +244,14 @@ export function AuthPanel({ initialMode = "signin" }: AuthPanelProps) {
           <input
             type="password"
             required
-            minLength={8}
+            minLength={mode === "signup" ? MIN_PASSWORD_LENGTH : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-accent-primary focus:ring-2"
           />
+          {mode === "signup" ? (
+            <p className="text-xs text-muted">{PASSWORD_TOO_SHORT_MESSAGE}</p>
+          ) : null}
         </label>
 
         {mode === "signin" ? (
