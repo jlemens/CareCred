@@ -8,6 +8,73 @@ const patchSchema = z.object({
   markAll: z.boolean().optional(),
 });
 
+async function markReadViaRpc(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
+  args: { notificationId?: string; markAll?: boolean },
+) {
+  const { data, error } = await supabase.rpc("mark_notifications_read", {
+    p_notification_id: args.notificationId ?? null,
+    p_mark_all: Boolean(args.markAll),
+  });
+
+  if (error) {
+    const outdated =
+      error.message.includes("mark_notifications_read") ||
+      error.message.includes("does not exist");
+    return {
+      ok: false as const,
+      error: outdated
+        ? "Database schema is outdated. Run supabase/migrations/20250704150000_mark_notifications_read.sql, then retry."
+        : error.message,
+      outdated,
+    };
+  }
+
+  return {
+    ok: true as const,
+    updatedCount: typeof data === "number" && Number.isFinite(data) ? data : 0,
+  };
+}
+
+async function markReadViaUpdate(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseServerClient>>>,
+  userId: string,
+  args: { notificationId?: string; markAll?: boolean },
+) {
+  const now = new Date().toISOString();
+
+  if (args.markAll) {
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read_at: now })
+      .eq("recipient_user_id", userId)
+      .is("read_at", null);
+
+    if (error) {
+      return { ok: false as const, error: error.message, outdated: false };
+    }
+
+    return { ok: true as const, updatedCount: 0 };
+  }
+
+  if (!args.notificationId) {
+    return { ok: false as const, error: "Missing notificationId.", outdated: false };
+  }
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: now })
+    .eq("id", args.notificationId)
+    .eq("recipient_user_id", userId)
+    .is("read_at", null);
+
+  if (error) {
+    return { ok: false as const, error: error.message, outdated: false };
+  }
+
+  return { ok: true as const, updatedCount: 1 };
+}
+
 export async function GET() {
   const supabase = await getSupabaseServerClient();
   if (!supabase) {
@@ -80,34 +147,28 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
   }
 
-  const now = new Date().toISOString();
-
-  if (parsed.data.markAll) {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read_at: now })
-      .eq("recipient_user_id", user.id)
-      .is("read_at", null);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    return NextResponse.json({ ok: true });
-  }
-
-  if (!parsed.data.notificationId) {
+  if (!parsed.data.markAll && !parsed.data.notificationId) {
     return NextResponse.json({ error: "Missing notificationId." }, { status: 400 });
   }
 
-  const { error } = await supabase
-    .from("notifications")
-    .update({ read_at: now })
-    .eq("id", parsed.data.notificationId)
-    .eq("recipient_user_id", user.id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const rpcResult = await markReadViaRpc(supabase, parsed.data);
+  if (rpcResult.ok) {
+    return NextResponse.json({
+      ok: true,
+      updatedCount: rpcResult.updatedCount,
+    });
   }
 
-  return NextResponse.json({ ok: true });
+  if (!rpcResult.outdated) {
+    const fallback = await markReadViaUpdate(supabase, user.id, parsed.data);
+    if (fallback.ok) {
+      return NextResponse.json({
+        ok: true,
+        updatedCount: fallback.updatedCount,
+      });
+    }
+    return NextResponse.json({ error: fallback.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ error: rpcResult.error }, { status: 400 });
 }

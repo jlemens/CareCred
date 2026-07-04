@@ -71,40 +71,58 @@ export function NotificationsPanel() {
     };
   }, [loadNotifications]);
 
+  function applyReadLocally(notificationIds?: Set<string>) {
+    const now = new Date().toISOString();
+    setNotifications((current) =>
+      current.map((item) => {
+        if (notificationIds && !notificationIds.has(item.id)) return item;
+        return {
+          ...item,
+          read_at: item.read_at ?? now,
+        };
+      }),
+    );
+    setUnreadCount((count) =>
+      notificationIds
+        ? Math.max(0, count - notificationIds.size)
+        : 0,
+    );
+    window.dispatchEvent(new CustomEvent("carecred:notifications-changed"));
+  }
+
   function markAllRead() {
+    setError(null);
     startTransition(async () => {
       const response = await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markAll: true }),
       });
-      if (!response.ok) return;
-      setNotifications((current) =>
-        current.map((item) => ({
-          ...item,
-          read_at: item.read_at ?? new Date().toISOString(),
-        })),
-      );
-      setUnreadCount(0);
+      const payload = (await response.json()) as {
+        error?: string;
+        ok?: boolean;
+        updatedCount?: number;
+      };
+      if (!response.ok) {
+        setError(payload.error ?? "Unable to mark notifications as read.");
+        return;
+      }
+      applyReadLocally();
+      await loadNotifications();
     });
   }
 
   function openNotification(notification: AppNotification) {
     startTransition(async () => {
       if (!notification.read_at) {
-        await fetch("/api/notifications", {
+        const response = await fetch("/api/notifications", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ notificationId: notification.id }),
         });
-        setNotifications((current) =>
-          current.map((item) =>
-            item.id === notification.id
-              ? { ...item, read_at: new Date().toISOString() }
-              : item,
-          ),
-        );
-        setUnreadCount((count) => Math.max(0, count - 1));
+        if (response.ok) {
+          applyReadLocally(new Set([notification.id]));
+        }
       }
       router.push(notification.href);
     });
@@ -189,6 +207,7 @@ export function NotificationsPanel() {
             })}
           </ul>
         )}
+        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       </section>
 
       <p className="text-center text-xs text-muted">

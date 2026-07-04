@@ -25,7 +25,17 @@ export function ProfileFollowButton({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  if (isOwnProfile) return null;
+  if (isOwnProfile) {
+    const countLabel = `${followerCount} ${followerCount === 1 ? "follower" : "followers"}`;
+    return (
+      <div className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end">
+        <p className="text-sm font-medium text-foreground sm:text-right">{countLabel}</p>
+        {!showFollowerCount ? (
+          <p className="text-xs text-muted sm:text-right">Hidden on your public page</p>
+        ) : null}
+      </div>
+    );
+  }
 
   function toggleFollow() {
     if (!signedIn) return;

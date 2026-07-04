@@ -8,6 +8,7 @@ import {
   PASSWORD_TOO_SHORT_MESSAGE,
 } from "@/lib/password-rules";
 import { getPasswordResetRedirectTo } from "@/lib/password-reset";
+import { PasswordInput } from "@/components/password-input";
 
 type Mode = "signin" | "signup";
 
@@ -241,13 +242,11 @@ export function AuthPanel({ initialMode = "signin" }: AuthPanelProps) {
 
         <label className="block space-y-2">
           <span className="text-sm text-muted">Password</span>
-          <input
-            type="password"
+          <PasswordInput
             required
             minLength={mode === "signup" ? MIN_PASSWORD_LENGTH : undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none ring-accent-primary focus:ring-2"
           />
           {mode === "signup" ? (
             <p className="text-xs text-muted">{PASSWORD_TOO_SHORT_MESSAGE}</p>

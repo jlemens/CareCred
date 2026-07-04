@@ -8,6 +8,7 @@ import {
   PASSWORD_TOO_SHORT_MESSAGE,
 } from "@/lib/password-rules";
 import { getPasswordResetRedirectTo } from "@/lib/password-reset";
+import { PasswordInput } from "@/components/password-input";
 
 type Props = {
   accountEmail: string;
@@ -137,27 +138,25 @@ export function AccountPasswordCollapsible({
           >
             <label className="block space-y-1">
               <span className="text-xs text-muted">New password</span>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                inputClassName="w-full rounded-md border border-border bg-background py-2 pl-3 pr-11 text-sm"
               />
               <p className="text-xs text-muted">{PASSWORD_TOO_SHORT_MESSAGE}</p>
             </label>
             <label className="block space-y-1">
               <span className="text-xs text-muted">Confirm new password</span>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 value={confirmNew}
                 onChange={(e) => setConfirmNew(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                inputClassName="w-full rounded-md border border-border bg-background py-2 pl-3 pr-11 text-sm"
               />
             </label>
             {changeMsg ? (

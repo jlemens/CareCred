@@ -65,6 +65,26 @@ input[type="submit"] {
   min-height: 44px;
 }
 
+/* Hide native password reveal so our white toggle is the only control. */
+input.carecred-password-field::-ms-reveal {
+  display: none;
+}
+
+input.carecred-password-field::-ms-clear {
+  display: none;
+}
+
+input.carecred-password-field::-webkit-credentials-auto-fill-button,
+input.carecred-password-field::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  display: none;
+  pointer-events: none;
+}
+
+.password-toggle-btn {
+  min-height: 0;
+}
+
 /* Header “Sign in” — soft accent glow pulse for guests (respects reduced motion). */
 @keyframes carecred-signin-pulse {
   0%,
