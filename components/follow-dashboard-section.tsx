@@ -50,7 +50,7 @@ export function FollowDashboardSection({
   return (
     <div className="grid gap-6">
       <section className="card p-6">
-        <details open>
+        <details>
           <summary className="cursor-pointer text-base font-semibold text-foreground">
             Followers &amp; privacy
           </summary>
@@ -77,8 +77,8 @@ export function FollowDashboardSection({
                   Show follower count on my public profile
                 </span>
                 <span className="mt-1 block text-muted">
-                  When off, your follower count and public follower list are hidden on
-                  your profile page. You can still follow others and see your stats here.
+                  When off, your follower count is hidden on your public profile page.
+                  You can still follow others and see your stats here.
                 </span>
               </span>
             </label>

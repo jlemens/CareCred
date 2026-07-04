@@ -5,7 +5,6 @@ import { AddTestimonialPanel } from "@/components/add-testimonial-panel";
 import { ExpandableProfileText } from "@/components/expandable-profile-text";
 import { ExpandableReviewCard } from "@/components/expandable-review-card";
 import { ProfileFollowButton } from "@/components/profile-follow-button";
-import { ProfileFollowersList } from "@/components/profile-followers-list";
 import { ProfileShareLink } from "@/components/profile-share-link";
 import { ReviewRatingSummary } from "@/components/review-rating-summary";
 import { resolveEnabledSurveys, surveyConfigFromProfile } from "@/lib/surveys/config";
@@ -18,7 +17,6 @@ import {
 import {
   getGivenReviewsWithProviderSummaries,
   getProfileBySlug,
-  getProfileFollowers,
   getProfileFollowStats,
   getProviderHiddenReviewCount,
   getProviderReviews,
@@ -50,10 +48,11 @@ export default async function PublicProfilePage({ params }: Props) {
   const isOwnProfile = sessionUser?.id === profile.user_id;
   const showFollowerCount = profile.show_follower_count !== false;
 
-  const [followStats, followers] = await Promise.all([
-    getProfileFollowStats(profile.id, sessionUser?.id ?? null, showFollowerCount),
-    showFollowerCount ? getProfileFollowers(profile.id) : Promise.resolve([]),
-  ]);
+  const followStats = await getProfileFollowStats(
+    profile.id,
+    sessionUser?.id ?? null,
+    showFollowerCount,
+  );
 
   const givenWithProviders =
     profile.profile_type === "patient" &&
@@ -204,10 +203,6 @@ export default async function PublicProfilePage({ params }: Props) {
           </div>
         ) : null}
       </section>
-
-      {showFollowerCount && followers.length > 0 ? (
-        <ProfileFollowersList followers={followers} />
-      ) : null}
 
       {profile.profile_type === "provider" && surveyStarStats ? (
         <ReviewRatingSummary
