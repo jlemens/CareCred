@@ -6,7 +6,7 @@ import { ExpandableProfileText } from "@/components/expandable-profile-text";
 import { ExpandableReviewCard } from "@/components/expandable-review-card";
 import { ProfileShareLink } from "@/components/profile-share-link";
 import { ReviewRatingSummary } from "@/components/review-rating-summary";
-import { parseSurveyConfig, resolveEnabledSurveys } from "@/lib/surveys/config";
+import { resolveEnabledSurveys, surveyConfigFromProfile } from "@/lib/surveys/config";
 import {
   computePtSurveyStarStats,
   MAX_PINNED_TESTIMONIALS,
@@ -53,7 +53,7 @@ export default async function PublicProfilePage({ params }: Props) {
     profile.profile_type === "provider" && sessionUser?.id === profile.user_id;
   const enabledSurveys =
     profile.profile_type === "provider"
-      ? resolveEnabledSurveys(parseSurveyConfig(profile.survey_config))
+      ? resolveEnabledSurveys(surveyConfigFromProfile(profile))
       : [];
   const surveyStarStats =
     profile.profile_type === "provider"

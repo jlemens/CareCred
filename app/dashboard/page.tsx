@@ -13,6 +13,7 @@ import {
   getProviderHiddenReviews,
   getSessionUser,
 } from "@/lib/queries";
+import { surveyConfigFromProfile } from "@/lib/surveys/config";
 import { hasSupabaseEnv } from "@/lib/env";
 
 export default async function DashboardPage() {
@@ -148,7 +149,7 @@ export default async function DashboardPage() {
       {profile.profile_type === "provider" ? (
         <section className="card p-6">
           <SurveyCenterCollapsible
-            initialConfig={profile.survey_config}
+            initialConfig={surveyConfigFromProfile(profile)}
             profession={profile.profession}
           />
         </section>

@@ -59,6 +59,21 @@ export function parseSurveyConfig(raw: unknown): ProviderSurveyConfig {
   };
 }
 
+/** Use stored JSON when present; otherwise fall back to active_survey_template. */
+export function surveyConfigFromProfile(profile: {
+  survey_config?: unknown;
+  active_survey_template?: string | null;
+}): ProviderSurveyConfig {
+  if (profile.survey_config != null) {
+    return parseSurveyConfig(profile.survey_config);
+  }
+  const templateId = profile.active_survey_template ?? DEFAULT_TEMPLATE_ID;
+  return parseSurveyConfig({
+    enabledTemplateIds: [templateId],
+    custom: { enabled: false, questionIds: [] },
+  });
+}
+
 export function resolveEnabledSurveys(config: ProviderSurveyConfig): ResolvedSurvey[] {
   const out: ResolvedSurvey[] = [];
 

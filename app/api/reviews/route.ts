@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   isSurveyEnabledForProvider,
-  parseSurveyConfig,
   resolveSurveyQuestions,
+  surveyConfigFromProfile,
 } from "@/lib/surveys/config";
 import { getTemplateById } from "@/lib/surveys/templates";
 import { CUSTOM_TEMPLATE_ID } from "@/lib/surveys/types";
@@ -47,14 +47,14 @@ export async function POST(request: Request) {
 
   const { data: providerProfile, error: providerLookupError } = await supabase
     .from("profiles")
-    .select("user_id, slug, display_name, survey_config")
+    .select("user_id, slug, display_name, active_survey_template")
     .eq("id", parsed.data.providerProfileId)
     .eq("profile_type", "provider")
     .single<{
       user_id: string;
       slug: string;
       display_name: string;
-      survey_config: unknown;
+      active_survey_template: string | null;
     }>();
 
   if (providerLookupError || !providerProfile) {
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const surveyConfig = parseSurveyConfig(providerProfile.survey_config);
+  const surveyConfig = surveyConfigFromProfile(providerProfile);
   const { surveyTemplateId } = parsed.data;
 
   if (!isSurveyEnabledForProvider(surveyConfig, surveyTemplateId)) {
