@@ -28,7 +28,7 @@ export function ProfileFollowersList({
         {followers.length === 0 ? (
           <p className="text-sm text-muted">{emptyMessage}</p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="max-h-72 divide-y divide-border overflow-y-auto overscroll-y-contain">
             {followers.map((follower) => (
               <li key={follower.slug}>
                 <Link

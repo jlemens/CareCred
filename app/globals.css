@@ -52,6 +52,15 @@ a {
   border-radius: 0.875rem;
 }
 
+.card-highlight {
+  border-color: color-mix(in srgb, var(--accent-primary) 32%, var(--border));
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--accent-primary) 11%, var(--surface)),
+    color-mix(in srgb, var(--accent-secondary) 7%, var(--surface-alt))
+  );
+}
+
 /* iOS form UX: prevent auto-zoom by keeping 16px inputs. */
 input,
 select,

@@ -4,9 +4,10 @@ import { FormEvent, useState } from "react";
 
 type Props = {
   providerProfileId: string;
+  highlighted?: boolean;
 };
 
-export function ImportedReviewForm({ providerProfileId }: Props) {
+export function ImportedReviewForm({ providerProfileId, highlighted = false }: Props) {
   const [guestName, setGuestName] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
@@ -50,7 +51,7 @@ export function ImportedReviewForm({ providerProfileId }: Props) {
   }
 
   return (
-    <section className="card p-6">
+    <section className={`card p-6${highlighted ? " card-highlight" : ""}`}>
       <details>
         <summary className="cursor-pointer text-sm font-medium text-foreground">
           Add review manually

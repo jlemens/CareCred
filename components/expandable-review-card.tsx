@@ -386,14 +386,9 @@ export function ExpandableReviewCard({
         </p>
       ) : null}
 
-      <p className="mt-3 text-sm leading-snug">
-        <span className="font-semibold text-foreground">
-          {review.guest_name?.trim() || "Anonymous"}
-        </span>
-        <span className="font-medium text-success">
-          {" "}
-          • Posted {formatReviewPostedAt(review.created_at)}
-        </span>
+      <p className="mt-3 text-sm font-medium leading-snug text-success">
+        {review.guest_name?.trim() || "Anonymous"} • Posted{" "}
+        {formatReviewPostedAt(review.created_at)}
       </p>
 
       {review.disclaimer_text ? (

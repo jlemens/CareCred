@@ -149,6 +149,19 @@ export default async function DashboardPage() {
         ) : null}
       </section>
 
+      {profile.profile_type === "provider" ? (
+        <section className="card card-highlight p-6">
+          <SurveyCenterCollapsible
+            initialConfig={surveyConfigFromProfile(profile)}
+            profession={profile.profession}
+          />
+        </section>
+      ) : null}
+
+      {profile.profile_type === "provider" ? (
+        <ImportedReviewForm providerProfileId={profile.id} highlighted />
+      ) : null}
+
       <section className="card p-6">
         <AccountPasswordCollapsible
           accountEmail={user.email ?? ""}
@@ -162,19 +175,6 @@ export default async function DashboardPage() {
         followerCount={followerCount}
         initialShowFollowerCount={profile.show_follower_count !== false}
       />
-
-      {profile.profile_type === "provider" ? (
-        <section className="card p-6">
-          <SurveyCenterCollapsible
-            initialConfig={surveyConfigFromProfile(profile)}
-            profession={profile.profession}
-          />
-        </section>
-      ) : null}
-
-      {profile.profile_type === "provider" ? (
-        <ImportedReviewForm providerProfileId={profile.id} />
-      ) : null}
 
       {profile.profile_type === "provider" ? (
         <section className="card p-6">
