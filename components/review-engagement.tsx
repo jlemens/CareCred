@@ -227,7 +227,7 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
                 </p>
               ) : null}
               <ul
-                className={`review-comments-list ${
+                className={`divide-y divide-border ${
                   showAllComments && engagement.comments.length > COMMENTS_PREVIEW_COUNT
                     ? "overflow-y-auto"
                     : ""
@@ -242,8 +242,11 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
                   ? engagement.comments
                   : engagement.comments.slice(-COMMENTS_PREVIEW_COUNT)
                 ).map((comment) => (
-                  <li key={comment.id} className="review-comment">
-                    <div className="flex items-start justify-between gap-2">
+                  <li
+                    key={comment.id}
+                    className="border-l-2 border-accent-secondary/35 py-3 pl-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         {comment.author_slug ? (
                           <Link
