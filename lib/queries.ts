@@ -118,6 +118,37 @@ export async function searchProviders(query: string) {
   return ranked;
 }
 
+async function attachAuthorSlugs(reviews: ProviderReview[]) {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase || reviews.length === 0) return reviews;
+
+  const authorIds = [
+    ...new Set(
+      reviews
+        .map((review) => review.author_user_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (authorIds.length === 0) return reviews;
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, slug")
+    .in("user_id", authorIds)
+    .returns<Array<{ user_id: string; slug: string }>>();
+
+  const slugByUserId = new Map(
+    (profiles ?? []).map((profile) => [profile.user_id, profile.slug]),
+  );
+
+  return reviews.map((review) => {
+    if (!review.author_user_id) return review;
+    const authorSlug = slugByUserId.get(review.author_user_id);
+    if (!authorSlug) return review;
+    return { ...review, author_slug: authorSlug };
+  });
+}
+
 export async function getProviderReviews(providerProfileId: string) {
   const supabase = await getSupabaseServerClient();
   if (!supabase) return [] as ProviderReview[];
@@ -131,7 +162,7 @@ export async function getProviderReviews(providerProfileId: string) {
     .order("created_at", { ascending: false })
     .returns<ProviderReview[]>();
 
-  return data ?? [];
+  return attachAuthorSlugs(data ?? []);
 }
 
 export async function getProviderHiddenReviews(providerProfileId: string) {
@@ -146,7 +177,7 @@ export async function getProviderHiddenReviews(providerProfileId: string) {
     .order("created_at", { ascending: false })
     .returns<ProviderReview[]>();
 
-  return data ?? [];
+  return attachAuthorSlugs(data ?? []);
 }
 
 /** Count of non-visible reviews; callable for any visitor (uses DB RPC, not row-level select). */

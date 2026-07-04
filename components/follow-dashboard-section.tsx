@@ -48,59 +48,61 @@ export function FollowDashboardSection({
   }
 
   return (
-    <div className="grid gap-6">
-      <section className="card p-6">
-        <details>
-          <summary className="cursor-pointer text-base font-semibold text-foreground">
-            Followers &amp; privacy
-          </summary>
-          <div className="mt-4 space-y-4">
-            <p className="text-sm text-muted">
-              You have{" "}
-              <span className="font-medium text-foreground">
-                {followerCount} {followerCount === 1 ? "follower" : "followers"}
-              </span>
-              . Following {following.length}{" "}
-              {following.length === 1 ? "profile" : "profiles"}.
-            </p>
+    <section className="card p-6">
+      <details>
+        <summary className="cursor-pointer text-base font-semibold text-foreground">
+          Followers &amp; privacy
+        </summary>
+        <div className="mt-4 space-y-6">
+          <p className="text-sm text-muted">
+            You have{" "}
+            <span className="font-medium text-foreground">
+              {followerCount} {followerCount === 1 ? "follower" : "followers"}
+            </span>
+            . Following {following.length}{" "}
+            {following.length === 1 ? "profile" : "profiles"}.
+          </p>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-surface-alt/50 p-4">
-              <input
-                type="checkbox"
-                checked={showFollowerCount}
-                disabled={settingsLoading}
-                onChange={(event) => void saveShowFollowerCount(event.target.checked)}
-                className="mt-1"
-              />
-              <span className="text-sm">
-                <span className="block font-medium text-foreground">
-                  Show follower count on my public profile
-                </span>
-                <span className="mt-1 block text-muted">
-                  When off, your follower count is hidden on your public profile page.
-                  You can still follow others and see your stats here.
-                </span>
+          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-surface-alt/50 p-4">
+            <input
+              type="checkbox"
+              checked={showFollowerCount}
+              disabled={settingsLoading}
+              onChange={(event) => void saveShowFollowerCount(event.target.checked)}
+              className="mt-1"
+            />
+            <span className="text-sm">
+              <span className="block font-medium text-foreground">
+                Show follower count on my public profile
               </span>
-            </label>
+              <span className="mt-1 block text-muted">
+                When off, your follower count is hidden on your public profile page.
+                You can still follow others and see your stats here.
+              </span>
+            </span>
+          </label>
 
-            {settingsMessage ? (
-              <p className="text-xs text-muted">{settingsMessage}</p>
-            ) : null}
+          {settingsMessage ? (
+            <p className="text-xs text-muted">{settingsMessage}</p>
+          ) : null}
+
+          <div className="space-y-4 border-t border-border pt-4">
+            <ProfileFollowersList
+              embedded
+              followers={followers}
+              title="Your followers"
+              emptyMessage="When someone follows your profile, they'll show up here."
+            />
+
+            <ProfileFollowersList
+              embedded
+              followers={following}
+              title="Profiles you follow"
+              emptyMessage="Visit a profile and tap Follow to build your list."
+            />
           </div>
-        </details>
-      </section>
-
-      <ProfileFollowersList
-        followers={followers}
-        title="Your followers"
-        emptyMessage="When someone follows your profile, they'll show up here."
-      />
-
-      <ProfileFollowersList
-        followers={following}
-        title="Profiles you follow"
-        emptyMessage="Visit a profile and tap Follow to build your list."
-      />
-    </div>
+        </div>
+      </details>
+    </section>
   );
 }

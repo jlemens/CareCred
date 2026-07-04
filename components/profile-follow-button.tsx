@@ -28,10 +28,14 @@ export function ProfileFollowButton({
   if (isOwnProfile) {
     const countLabel = `${followerCount} ${followerCount === 1 ? "follower" : "followers"}`;
     return (
-      <div className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end">
-        <p className="text-sm font-medium text-foreground sm:text-right">{countLabel}</p>
+      <div className="flex w-full shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+        <div className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-border bg-surface-alt px-6 py-2.5 text-base font-semibold text-foreground shadow-sm sm:w-auto">
+          {countLabel}
+        </div>
         {!showFollowerCount ? (
-          <p className="text-xs text-muted sm:text-right">Hidden on your public page</p>
+          <p className="text-center text-xs text-muted sm:text-right">
+            Hidden on your public page
+          </p>
         ) : null}
       </div>
     );
@@ -75,11 +79,15 @@ export function ProfileFollowButton({
   }
 
   const countLabel = `${followerCount} ${followerCount === 1 ? "follower" : "followers"}`;
+  const actionButtonClass =
+    "inline-flex min-h-12 w-full items-center justify-center rounded-lg px-6 py-2.5 text-base font-semibold shadow-sm transition disabled:opacity-50 sm:w-auto sm:min-w-[8.5rem]";
 
   return (
-    <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+    <div className="flex w-full shrink-0 flex-col items-stretch gap-2.5 sm:w-auto sm:items-end">
       {showFollowerCount ? (
-        <p className="text-sm text-muted sm:text-right">{countLabel}</p>
+        <p className="text-center text-base font-semibold text-foreground sm:text-right">
+          {countLabel}
+        </p>
       ) : null}
 
       {signedIn ? (
@@ -88,9 +96,9 @@ export function ProfileFollowButton({
           disabled={isPending}
           onClick={toggleFollow}
           aria-pressed={following}
-          className={`inline-flex min-h-11 items-center justify-center rounded-md px-5 py-2 text-sm font-semibold transition disabled:opacity-50 ${
+          className={`${actionButtonClass} ${
             following
-              ? "border border-border bg-surface-alt text-foreground hover:bg-background"
+              ? "border-2 border-success/50 bg-success/10 text-success hover:bg-success/15"
               : "bg-accent-primary text-white hover:bg-accent-hover"
           }`}
         >
@@ -99,13 +107,15 @@ export function ProfileFollowButton({
       ) : (
         <Link
           href="/auth"
-          className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-hover"
+          className={`${actionButtonClass} bg-accent-primary text-white hover:bg-accent-hover`}
         >
           Follow
         </Link>
       )}
 
-      {error ? <p className="max-w-[14rem] text-xs text-danger sm:text-right">{error}</p> : null}
+      {error ? (
+        <p className="max-w-[14rem] text-center text-xs text-danger sm:text-right">{error}</p>
+      ) : null}
     </div>
   );
 }

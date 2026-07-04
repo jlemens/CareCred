@@ -56,6 +56,8 @@ export type ProviderReview = {
   survey_template_id: string | null;
   survey_responses: Record<string, string | number | boolean> | null;
   created_at: string;
+  /** Populated when the reviewer has a CareCred profile (member reviews). */
+  author_slug?: string | null;
 };
 
 export type ProviderSearchResult = Pick<

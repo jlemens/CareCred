@@ -46,13 +46,14 @@ function formatReviewPostedAt(createdAt: string) {
   }).format(postedAt);
 }
 
-function OwnerReviewMenu({
+function TestimonialOptionsMenu({
   ownerCanHide,
   ownerCanPin,
   optimisticVisible,
   optimisticPinned,
   canPinMore,
   isPending,
+  reviewerProfileHref,
   onToggleVisibility,
   onTogglePin,
 }: {
@@ -62,6 +63,7 @@ function OwnerReviewMenu({
   optimisticPinned: boolean;
   canPinMore: boolean;
   isPending: boolean;
+  reviewerProfileHref: string | null;
   onToggleVisibility: () => void;
   onTogglePin: () => void;
 }) {
@@ -92,9 +94,14 @@ function OwnerReviewMenu({
   }, [open]);
 
   const hasMenuItems =
-    ownerCanHide || (ownerCanPin && (optimisticPinned || canPinMore));
+    Boolean(reviewerProfileHref) ||
+    ownerCanHide ||
+    (ownerCanPin && (optimisticPinned || canPinMore));
 
   if (!hasMenuItems) return null;
+
+  const menuItemClass =
+    "flex w-full px-3 py-2.5 text-left text-sm transition hover:bg-surface-alt disabled:opacity-50";
 
   return (
     <div ref={menuRef} className="relative shrink-0">
@@ -115,6 +122,16 @@ function OwnerReviewMenu({
           role="menu"
           className="absolute right-0 z-20 mt-1 min-w-[11rem] overflow-hidden rounded-md border border-border bg-surface py-1 shadow-lg shadow-black/30"
         >
+          {reviewerProfileHref ? (
+            <Link
+              href={reviewerProfileHref}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={menuItemClass}
+            >
+              View reviewer profile
+            </Link>
+          ) : null}
           {ownerCanHide ? (
             <button
               type="button"
@@ -124,7 +141,7 @@ function OwnerReviewMenu({
                 setOpen(false);
                 onToggleVisibility();
               }}
-              className="flex w-full px-3 py-2.5 text-left text-sm transition hover:bg-surface-alt disabled:opacity-50"
+              className={menuItemClass}
             >
               {optimisticVisible ? "Hide review" : "Unhide review"}
             </button>
@@ -138,7 +155,7 @@ function OwnerReviewMenu({
                 setOpen(false);
                 onTogglePin();
               }}
-              className="flex w-full px-3 py-2.5 text-left text-sm transition hover:bg-surface-alt disabled:opacity-50"
+              className={menuItemClass}
             >
               {optimisticPinned ? "Unpin review" : "Pin review"}
             </button>
@@ -200,6 +217,8 @@ export function ExpandableReviewCard({
     optimisticPinned || pinnedCount < MAX_PINNED_TESTIMONIALS;
   const audienceBadge = reviewAudienceBadge(review);
   const showOwnerActions = ownerCanPin || ownerCanHide;
+  const reviewerProfileHref = review.author_slug ? `/u/${review.author_slug}` : null;
+  const showOptionsMenu = showOwnerActions || Boolean(reviewerProfileHref);
   const surveyLabel = surveyLabelForReview(review);
   const detailRows = reviewDetailRows(review);
 
@@ -367,15 +386,21 @@ export function ExpandableReviewCard({
         </p>
       ) : null}
 
-      <p className="mt-3 text-xs text-muted">
-        {review.guest_name?.trim() || "Anonymous"} • Posted {formatReviewPostedAt(review.created_at)}
+      <p className="mt-3 text-sm leading-snug">
+        <span className="font-semibold text-foreground">
+          {review.guest_name?.trim() || "Anonymous"}
+        </span>
+        <span className="font-medium text-success">
+          {" "}
+          • Posted {formatReviewPostedAt(review.created_at)}
+        </span>
       </p>
 
       {review.disclaimer_text ? (
         <p className="mt-1 text-xs text-muted">{review.disclaimer_text}</p>
       ) : null}
 
-      {needsExpand || showOwnerActions ? (
+      {needsExpand || showOptionsMenu ? (
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             {needsExpand ? (
@@ -388,14 +413,15 @@ export function ExpandableReviewCard({
               </button>
             ) : null}
           </div>
-          {showOwnerActions ? (
-            <OwnerReviewMenu
+          {showOptionsMenu ? (
+            <TestimonialOptionsMenu
               ownerCanHide={ownerCanHide}
               ownerCanPin={ownerCanPin}
               optimisticVisible={optimisticVisible}
               optimisticPinned={optimisticPinned}
               canPinMore={canPinMore}
               isPending={isPending}
+              reviewerProfileHref={reviewerProfileHref}
               onToggleVisibility={toggleVisibility}
               onTogglePin={togglePin}
             />

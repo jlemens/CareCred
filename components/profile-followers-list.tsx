@@ -5,56 +5,67 @@ type Props = {
   followers: ProfileFollowSummary[];
   title?: string;
   emptyMessage?: string;
+  /** When true, omits the outer card wrapper for use inside another section. */
+  embedded?: boolean;
 };
 
 export function ProfileFollowersList({
   followers,
   title = "Followers",
   emptyMessage = "No followers yet.",
+  embedded = false,
 }: Props) {
-  return (
-    <section className="card p-6">
-      <details>
-        <summary className="cursor-pointer text-base font-semibold text-foreground">
-          {title} ({followers.length})
-        </summary>
-        <div className="mt-4">
-          {followers.length === 0 ? (
-            <p className="text-sm text-muted">{emptyMessage}</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {followers.map((follower) => (
-                <li key={follower.slug}>
-                  <Link
-                    href={`/u/${follower.slug}`}
-                    className="flex min-h-14 items-center gap-3 py-3 transition hover:opacity-90"
-                  >
-                    {follower.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={follower.avatar_url}
-                        alt=""
-                        className="h-10 w-10 shrink-0 rounded-lg border border-border object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-alt text-sm font-semibold text-muted">
-                        {follower.display_name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{follower.display_name}</p>
-                      <p className="truncate text-xs text-muted">
-                        {follower.profile_type === "provider" ? "Provider" : "Patient"} · /u/
-                        {follower.slug}
-                      </p>
+  const summaryClass = embedded
+    ? "cursor-pointer text-sm font-medium text-foreground"
+    : "cursor-pointer text-base font-semibold text-foreground";
+
+  const content = (
+    <details>
+      <summary className={summaryClass}>
+        {title} ({followers.length})
+      </summary>
+      <div className={embedded ? "mt-3" : "mt-4"}>
+        {followers.length === 0 ? (
+          <p className="text-sm text-muted">{emptyMessage}</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {followers.map((follower) => (
+              <li key={follower.slug}>
+                <Link
+                  href={`/u/${follower.slug}`}
+                  className="flex min-h-14 items-center gap-3 py-3 transition hover:opacity-90"
+                >
+                  {follower.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={follower.avatar_url}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-lg border border-border object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-alt text-sm font-semibold text-muted">
+                      {follower.display_name.charAt(0).toUpperCase()}
                     </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </details>
-    </section>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{follower.display_name}</p>
+                    <p className="truncate text-xs text-muted">
+                      {follower.profile_type === "provider" ? "Provider" : "Patient"} · /u/
+                      {follower.slug}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <section className="card p-6">{content}</section>;
 }
