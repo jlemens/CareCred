@@ -1,4 +1,4 @@
-import type { Profile, ProviderReview, ProviderSearchResult } from "@/lib/types";
+import type { Profile, ProfileFollowStats, ProfileFollowSummary, ProviderReview, ProviderSearchResult } from "@/lib/types";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function getSessionUser() {
@@ -212,5 +212,145 @@ export async function getGivenReviewsWithProviderSummaries(userId: string) {
     const provider = byId.get(review.provider_profile_id);
     if (provider) out.push({ review, provider });
   }
+  return out;
+}
+
+export async function getProfileFollowerCount(profileId: string) {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return 0;
+
+  const { data, error } = await supabase.rpc("profile_follower_count", {
+    p_profile_id: profileId,
+  });
+
+  if (error) {
+    const { count } = await supabase
+      .from("profile_follows")
+      .select("followed_profile_id", { head: true, count: "exact" })
+      .eq("followed_profile_id", profileId);
+    return count ?? 0;
+  }
+
+  return typeof data === "number" && Number.isFinite(data) ? data : 0;
+}
+
+export async function getProfileFollowStats(
+  profileId: string,
+  viewerUserId: string | null,
+  showFollowerCount = true,
+): Promise<ProfileFollowStats> {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) {
+    return { followerCount: 0, followedByMe: false, showFollowerCount };
+  }
+
+  const [followerCount, followedByMeResult] = await Promise.all([
+    getProfileFollowerCount(profileId),
+    viewerUserId
+      ? supabase
+          .from("profile_follows")
+          .select("followed_profile_id")
+          .eq("followed_profile_id", profileId)
+          .eq("follower_user_id", viewerUserId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  return {
+    followerCount,
+    followedByMe: Boolean(followedByMeResult.data),
+    showFollowerCount,
+  };
+}
+
+export async function getProfileFollowers(profileId: string, limit = 50) {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return [] as ProfileFollowSummary[];
+
+  const { data: follows } = await supabase
+    .from("profile_follows")
+    .select("follower_user_id, created_at")
+    .eq("followed_profile_id", profileId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!follows?.length) return [] as ProfileFollowSummary[];
+
+  const userIds = follows.map((row) => row.follower_user_id as string);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("user_id, display_name, slug, avatar_url, profile_type")
+    .in("user_id", userIds)
+    .returns<
+      Array<{
+        user_id: string;
+        display_name: string;
+        slug: string;
+        avatar_url: string | null;
+        profile_type: Profile["profile_type"];
+      }>
+    >();
+
+  const byUserId = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+  const out: ProfileFollowSummary[] = [];
+
+  for (const row of follows) {
+    const profile = byUserId.get(row.follower_user_id as string);
+    if (!profile) continue;
+    out.push({
+      display_name: profile.display_name,
+      slug: profile.slug,
+      avatar_url: profile.avatar_url,
+      profile_type: profile.profile_type,
+      followed_at: row.created_at as string,
+    });
+  }
+
+  return out;
+}
+
+export async function getProfilesFollowedByUser(userId: string, limit = 50) {
+  const supabase = await getSupabaseServerClient();
+  if (!supabase) return [] as ProfileFollowSummary[];
+
+  const { data: follows } = await supabase
+    .from("profile_follows")
+    .select("followed_profile_id, created_at")
+    .eq("follower_user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (!follows?.length) return [] as ProfileFollowSummary[];
+
+  const profileIds = follows.map((row) => row.followed_profile_id as string);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, display_name, slug, avatar_url, profile_type")
+    .in("id", profileIds)
+    .returns<
+      Array<{
+        id: string;
+        display_name: string;
+        slug: string;
+        avatar_url: string | null;
+        profile_type: Profile["profile_type"];
+      }>
+    >();
+
+  const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const out: ProfileFollowSummary[] = [];
+
+  for (const row of follows) {
+    const profile = byId.get(row.followed_profile_id as string);
+    if (!profile) continue;
+    out.push({
+      display_name: profile.display_name,
+      slug: profile.slug,
+      avatar_url: profile.avatar_url,
+      profile_type: profile.profile_type,
+      followed_at: row.created_at as string,
+    });
+  }
+
   return out;
 }

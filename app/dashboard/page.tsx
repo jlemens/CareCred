@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountPasswordCollapsible } from "@/components/account-password-collapsible";
 import { ExpandableReviewCard } from "@/components/expandable-review-card";
+import { FollowDashboardSection } from "@/components/follow-dashboard-section";
 import { GivenTestimonialsCollapsible } from "@/components/given-testimonials-collapsible";
 import { ImportedReviewForm } from "@/components/imported-review-form";
 import { ProfileShareLink } from "@/components/profile-share-link";
@@ -10,6 +11,9 @@ import { OnboardingFlow } from "@/components/onboarding-flow";
 import {
   getGivenReviewsWithProviderSummaries,
   getProfileByUserId,
+  getProfileFollowerCount,
+  getProfileFollowers,
+  getProfilesFollowedByUser,
   getProviderHiddenReviews,
   getSessionUser,
 } from "@/lib/queries";
@@ -64,6 +68,12 @@ export default async function DashboardPage() {
     profile.profile_type === "provider"
       ? await getProviderHiddenReviews(profile.id)
       : [];
+
+  const [followerCount, followers, following] = await Promise.all([
+    getProfileFollowerCount(profile.id),
+    getProfileFollowers(profile.id),
+    getProfilesFollowedByUser(user.id),
+  ]);
 
   return (
     <div className="grid w-full gap-6">
@@ -145,6 +155,13 @@ export default async function DashboardPage() {
           variant="settings-page"
         />
       </section>
+
+      <FollowDashboardSection
+        followers={followers}
+        following={following}
+        followerCount={followerCount}
+        initialShowFollowerCount={profile.show_follower_count !== false}
+      />
 
       {profile.profile_type === "provider" ? (
         <section className="card p-6">

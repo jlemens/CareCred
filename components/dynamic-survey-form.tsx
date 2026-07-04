@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { StarRatingInput } from "@/components/star-rating-input";
+import { SurveyQuestionLabel } from "@/components/survey-question-label";
 import { getQuestionById } from "@/lib/surveys/question-bank";
 import type { ResolvedSurvey } from "@/lib/surveys/types";
 import { reviewerStateSelectOptions } from "@/lib/us-states";
@@ -284,16 +285,8 @@ function SurveyQuestionField({
   const question = getQuestionById(questionId);
   if (!question) return null;
 
-  const optionalLabel = question.recommended ? (
-    <>
-      {question.label}{" "}
-      <strong className="font-semibold text-foreground">(recommended)</strong>
-      <span className="text-muted"> (optional)</span>
-    </>
-  ) : (
-    <>
-      {question.label} <span className="text-muted">(optional)</span>
-    </>
+  const label = (
+    <SurveyQuestionLabel label={question.label} recommended={question.recommended} />
   );
 
   switch (question.type) {
@@ -301,7 +294,7 @@ function SurveyQuestionField({
       return (
         <StarRatingInput
           id={`survey-q-${questionId}`}
-          label={optionalLabel}
+          label={label}
           value={typeof value === "number" ? value : 0}
           onChange={(n) => onChange(n >= 1 ? n : undefined)}
           disabled={disabled}
@@ -311,7 +304,7 @@ function SurveyQuestionField({
     case "yes_no":
       return (
         <Choice
-          label={optionalLabel}
+          label={label}
           value={
             value === true ? "yes" : value === false ? "no" : ""
           }
@@ -331,7 +324,7 @@ function SurveyQuestionField({
     case "select":
       return (
         <label className="block space-y-2">
-          <span className="text-sm text-muted">{optionalLabel}</span>
+          <SurveyQuestionLabel label={question.label} recommended={question.recommended} />
           <select
             disabled={disabled}
             value={typeof value === "string" ? value : ""}
@@ -350,7 +343,7 @@ function SurveyQuestionField({
     case "text":
       return (
         <label className="block space-y-2">
-          <span className="text-sm text-muted">{optionalLabel}</span>
+          <SurveyQuestionLabel label={question.label} recommended={question.recommended} />
           <input
             disabled={disabled}
             value={typeof value === "string" ? value : ""}
@@ -369,7 +362,7 @@ function SurveyQuestionField({
               : "block space-y-2"
           }
         >
-          <span className="text-sm leading-snug text-muted">{optionalLabel}</span>
+          <SurveyQuestionLabel label={question.label} recommended={question.recommended} />
           {question.recommended ? (
             <p className="text-xs leading-relaxed text-success">
               Written reviews help people understand what made your care stand out.
@@ -412,7 +405,7 @@ function Choice({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm text-muted">{label}</span>
+      <span className="block text-sm">{label}</span>
       <select
         disabled={disabled}
         value={value}

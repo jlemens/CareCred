@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { StarRatingInput } from "@/components/star-rating-input";
+import { SurveyQuestionLabel } from "@/components/survey-question-label";
 import { reviewerStateSelectOptions } from "@/lib/us-states";
 
 const bodyRegions = [
@@ -310,11 +311,10 @@ export function NewReviewForm({
       </label>
 
       <label className="mt-5 block space-y-2 border-t border-border/70 pt-5">
-        <span className="text-sm leading-snug text-muted">
-          Written feedback for others reading this profile —{" "}
-          <strong className="font-semibold text-foreground">recommended</strong>
-          <span className="text-muted"> (optional)</span>
-        </span>
+        <SurveyQuestionLabel
+          label="Written feedback for others reading this profile"
+          recommended
+        />
         <p className="text-xs leading-relaxed text-success">
           Written reviews are nice: they help people understand what made your care
           stand out.

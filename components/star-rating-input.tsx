@@ -25,7 +25,7 @@ export function StarRatingInput({
 
   return (
     <div className="space-y-2">
-      <span id={`${groupId}-label`} className="block text-sm text-muted">
+      <span id={`${groupId}-label`} className="block text-sm">
         {label}
       </span>
       <div

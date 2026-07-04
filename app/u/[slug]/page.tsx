@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { AddTestimonialPanel } from "@/components/add-testimonial-panel";
 import { ExpandableProfileText } from "@/components/expandable-profile-text";
 import { ExpandableReviewCard } from "@/components/expandable-review-card";
+import { ProfileFollowButton } from "@/components/profile-follow-button";
+import { ProfileFollowersList } from "@/components/profile-followers-list";
 import { ProfileShareLink } from "@/components/profile-share-link";
 import { ReviewRatingSummary } from "@/components/review-rating-summary";
 import { resolveEnabledSurveys, surveyConfigFromProfile } from "@/lib/surveys/config";
@@ -16,6 +18,8 @@ import {
 import {
   getGivenReviewsWithProviderSummaries,
   getProfileBySlug,
+  getProfileFollowers,
+  getProfileFollowStats,
   getProviderHiddenReviewCount,
   getProviderReviews,
   getSessionUser,
@@ -43,6 +47,14 @@ export default async function PublicProfilePage({ params }: Props) {
       : Promise.resolve(0),
   ]);
 
+  const isOwnProfile = sessionUser?.id === profile.user_id;
+  const showFollowerCount = profile.show_follower_count !== false;
+
+  const [followStats, followers] = await Promise.all([
+    getProfileFollowStats(profile.id, sessionUser?.id ?? null, showFollowerCount),
+    showFollowerCount ? getProfileFollowers(profile.id) : Promise.resolve([]),
+  ]);
+
   const givenWithProviders =
     profile.profile_type === "patient" &&
     sessionUser &&
@@ -50,7 +62,7 @@ export default async function PublicProfilePage({ params }: Props) {
       ? await getGivenReviewsWithProviderSummaries(sessionUser.id)
       : [];
   const isOwnProviderPage =
-    profile.profile_type === "provider" && sessionUser?.id === profile.user_id;
+    profile.profile_type === "provider" && isOwnProfile;
   const enabledSurveys =
     profile.profile_type === "provider"
       ? resolveEnabledSurveys(surveyConfigFromProfile(profile))
@@ -107,49 +119,60 @@ export default async function PublicProfilePage({ params }: Props) {
   return (
     <div className="grid w-full gap-6">
       <section className="card p-6">
-        <div className="flex flex-wrap items-start gap-4">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatar_url}
-              alt=""
-              className="h-24 w-24 shrink-0 rounded-xl border border-border object-cover"
-            />
-          ) : null}
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {profile.display_name}
-            </h1>
-            {profile.profile_type === "provider" ? (
-              <p
-                className={
-                  profile.profession?.trim()
-                    ? "mt-1 text-sm font-medium text-accent-secondary"
-                    : "mt-1 text-sm text-muted"
-                }
-              >
-                {profile.profession?.trim() || "Profession not listed"}
-              </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="h-24 w-24 shrink-0 rounded-xl border border-border object-cover"
+              />
             ) : null}
-            {profile.profile_type === "provider" && profile.credentials ? (
-              <p className="mt-1 text-sm font-medium text-muted">
-                {profile.credentials}
-              </p>
-            ) : null}
-            <p className="mt-1 text-sm text-muted">
-              {profile.profile_type === "provider"
-                ? profile.practice_name ?? "Independent practice"
-                : "Patient profile"}
-              {profile.location ? ` - ${profile.location}` : ""}
-              {profile.profile_type === "patient" &&
-              reviewerStateLabel(profile.home_state) ? (
-                <>
-                  {" "}
-                  · {reviewerStateLabel(profile.home_state)}
-                </>
+            <div className="min-w-0">
+              <h1 className="text-3xl font-semibold tracking-tight">
+                {profile.display_name}
+              </h1>
+              {profile.profile_type === "provider" ? (
+                <p
+                  className={
+                    profile.profession?.trim()
+                      ? "mt-1 text-sm font-medium text-accent-secondary"
+                      : "mt-1 text-sm text-muted"
+                  }
+                >
+                  {profile.profession?.trim() || "Profession not listed"}
+                </p>
               ) : null}
-            </p>
+              {profile.profile_type === "provider" && profile.credentials ? (
+                <p className="mt-1 text-sm font-medium text-muted">
+                  {profile.credentials}
+                </p>
+              ) : null}
+              <p className="mt-1 text-sm text-muted">
+                {profile.profile_type === "provider"
+                  ? profile.practice_name ?? "Independent practice"
+                  : "Patient profile"}
+                {profile.location ? ` - ${profile.location}` : ""}
+                {profile.profile_type === "patient" &&
+                reviewerStateLabel(profile.home_state) ? (
+                  <>
+                    {" "}
+                    · {reviewerStateLabel(profile.home_state)}
+                  </>
+                ) : null}
+              </p>
+            </div>
           </div>
+
+          <ProfileFollowButton
+            profileId={profile.id}
+            signedIn={Boolean(sessionUser)}
+            isOwnProfile={isOwnProfile}
+            initialFollowing={followStats.followedByMe}
+            initialFollowerCount={followStats.followerCount}
+            showFollowerCount={showFollowerCount}
+          />
         </div>
 
         {profile.profile_type === "provider" ? (
@@ -181,6 +204,10 @@ export default async function PublicProfilePage({ params }: Props) {
           </div>
         ) : null}
       </section>
+
+      {showFollowerCount && followers.length > 0 ? (
+        <ProfileFollowersList followers={followers} />
+      ) : null}
 
       {profile.profile_type === "provider" && surveyStarStats ? (
         <ReviewRatingSummary

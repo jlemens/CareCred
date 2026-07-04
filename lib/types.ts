@@ -24,6 +24,8 @@ export type Profile = {
   is_complete: boolean;
   /** How many times the public slug has been changed after creation (max 1 allowed). */
   slug_change_count?: number;
+  /** When false, follower count and public follower list are hidden on /u/[slug]. */
+  show_follower_count?: boolean;
 };
 
 export type ProviderReview = {
@@ -90,4 +92,18 @@ export type ReviewEngagementSummary = {
   likeCount: number;
   likedByMe: boolean;
   comments: ReviewComment[];
+};
+
+export type ProfileFollowSummary = {
+  display_name: string;
+  slug: string;
+  avatar_url: string | null;
+  profile_type: ProfileType;
+  followed_at: string;
+};
+
+export type ProfileFollowStats = {
+  followerCount: number;
+  followedByMe: boolean;
+  showFollowerCount: boolean;
 };
