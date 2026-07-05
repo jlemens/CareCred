@@ -58,6 +58,7 @@ export type ProviderReview = {
   created_at: string;
   /** Populated when the reviewer has a CareCred profile (member reviews). */
   author_slug?: string | null;
+  author_display_name?: string | null;
 };
 
 export type ProviderSearchResult = Pick<

@@ -133,19 +133,23 @@ async function attachAuthorSlugs(reviews: ProviderReview[]) {
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("user_id, slug")
+    .select("user_id, slug, display_name")
     .in("user_id", authorIds)
-    .returns<Array<{ user_id: string; slug: string }>>();
+    .returns<Array<{ user_id: string; slug: string; display_name: string }>>();
 
-  const slugByUserId = new Map(
-    (profiles ?? []).map((profile) => [profile.user_id, profile.slug]),
+  const profileByUserId = new Map(
+    (profiles ?? []).map((profile) => [profile.user_id, profile]),
   );
 
   return reviews.map((review) => {
     if (!review.author_user_id) return review;
-    const authorSlug = slugByUserId.get(review.author_user_id);
-    if (!authorSlug) return review;
-    return { ...review, author_slug: authorSlug };
+    const authorProfile = profileByUserId.get(review.author_user_id);
+    if (!authorProfile) return review;
+    return {
+      ...review,
+      author_slug: authorProfile.slug,
+      author_display_name: authorProfile.display_name,
+    };
   });
 }
 

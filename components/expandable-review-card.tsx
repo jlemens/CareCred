@@ -46,6 +46,14 @@ function formatReviewPostedAt(createdAt: string) {
   }).format(postedAt);
 }
 
+function reviewerDisplayName(review: ProviderReview) {
+  return (
+    review.author_display_name?.trim() ||
+    review.guest_name?.trim() ||
+    (review.author_user_id ? "Member" : "Anonymous")
+  );
+}
+
 function TestimonialOptionsMenu({
   ownerCanHide,
   ownerCanPin,
@@ -291,7 +299,12 @@ export function ExpandableReviewCard({
             Testimonial provided to
           </p>
           <p className="mt-1 text-base font-semibold tracking-tight text-foreground">
-            {providerContext.displayName}
+            <Link
+              href={`/u/${providerContext.slug}`}
+              className="text-accent-secondary underline-offset-2 hover:underline"
+            >
+              {providerContext.displayName}
+            </Link>
           </p>
           {providerContext.practiceName ? (
             <p className="mt-0.5 text-sm text-muted">{providerContext.practiceName}</p>
@@ -386,8 +399,18 @@ export function ExpandableReviewCard({
         </p>
       ) : null}
 
-      <p className="mt-3 text-sm font-medium leading-snug text-success">
-        {review.guest_name?.trim() || "Anonymous"} • Posted{" "}
+      <p className="mt-3 text-sm leading-snug text-muted">
+        {reviewerProfileHref ? (
+          <Link
+            href={reviewerProfileHref}
+            className="font-medium text-accent-secondary underline-offset-2 hover:underline"
+          >
+            {reviewerDisplayName(review)}
+          </Link>
+        ) : (
+          <span className="font-medium text-success">{reviewerDisplayName(review)}</span>
+        )}
+        {" • Posted "}
         {formatReviewPostedAt(review.created_at)}
       </p>
 

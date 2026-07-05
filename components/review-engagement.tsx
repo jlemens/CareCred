@@ -251,7 +251,7 @@ export function ReviewEngagement({ reviewId, signedIn, currentUserId }: Props) {
                         {comment.author_slug ? (
                           <Link
                             href={`/u/${comment.author_slug}`}
-                            className="text-sm font-medium text-accent-secondary hover:underline"
+                            className="text-sm font-medium text-accent-secondary underline-offset-2 hover:underline"
                           >
                             {comment.author_display_name ?? "Member"}
                           </Link>
